@@ -98,6 +98,13 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 		endpoint := ns.Address
 		address := endpoint.Address.AsAddress()
 
+		var myClientIP net.IP
+		if len(ns.ClientIp) == net.IPv4len || len(ns.ClientIp) == net.IPv6len {
+			myClientIP = net.IP(ns.ClientIp)
+		} else {
+			myClientIP = server.clientIP
+		}
+
 		switch {
 		case address.Family().IsDomain() && address.Domain() == "localhost":
 			server.clients = append(server.clients, NewLocalNameServer())
@@ -125,7 +132,7 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 			if err != nil {
 				log.Fatalln(newError("DNS config error").Base(err))
 			}
-			server.clients = append(server.clients, NewDoHLocalNameServer(u, server.clientIP))
+			server.clients = append(server.clients, NewDoHLocalNameServer(u, myClientIP))
 
 		case address.Family().IsDomain() && strings.HasPrefix(address.Domain(), "https://"):
 			// DOH Remote mode
@@ -138,7 +145,7 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 
 			// need the core dispatcher, register DOHClient at callback
 			common.Must(core.RequireFeatures(ctx, func(d routing.Dispatcher) {
-				c, err := NewDoHNameServer(u, d, server.clientIP)
+				c, err := NewDoHNameServer(u, d, myClientIP)
 				if err != nil {
 					log.Fatalln(newError("DNS config error").Base(err))
 				}
@@ -159,7 +166,7 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 				server.clients = append(server.clients, nil)
 
 				common.Must(core.RequireFeatures(ctx, func(d routing.Dispatcher) {
-					server.clients[idx] = NewClassicNameServer(dest, d, server.clientIP)
+					server.clients[idx] = NewClassicNameServer(dest, d, myClientIP)
 				}))
 			}
 		}

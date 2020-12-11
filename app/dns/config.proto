@@ -12,6 +12,7 @@ import "app/router/config.proto";
 
 message NameServer {
   xray.common.net.Endpoint address = 1;
+  bytes client_ip = 5;
 
   message PriorityDomain {
     DomainMatchingType type = 1;
