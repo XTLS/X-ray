@@ -37,19 +37,15 @@ type DoHNameServer struct {
 	pub        *pubsub.Service
 	cleanup    *task.Periodic
 	reqID      uint32
-	clientIP   net.IP
 	httpClient *http.Client
 	dohURL     string
 	name       string
 }
 
-// NewDoHNameServer creates DOH client object for remote resolving
-func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher, clientIP net.IP) (*DoHNameServer, error) {
+// NewDoHNameServer creates DOH server object for remote resolving.
+func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServer, error) {
 	newError("DNS: created Remote DOH client for ", url.String()).AtInfo().WriteToLog()
-	if clientIP != nil {
-		newError("DNS: Remote DOH client ", url.String(), " uses clientip ", clientIP.String()).AtInfo().WriteToLog()
-	}
-	s := baseDOHNameServer(url, "DOH", clientIP)
+	s := baseDOHNameServer(url, "DOH")
 
 	s.dispatcher = dispatcher
 	tr := &http.Transport{
@@ -108,9 +104,9 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher, clientIP net.
 }
 
 // NewDoHLocalNameServer creates DOH client object for local resolving
-func NewDoHLocalNameServer(url *url.URL, clientIP net.IP) *DoHNameServer {
+func NewDoHLocalNameServer(url *url.URL) *DoHNameServer {
 	url.Scheme = "https"
-	s := baseDOHNameServer(url, "DOHL", clientIP)
+	s := baseDOHNameServer(url, "DOHL")
 	tr := &http.Transport{
 		IdleConnTimeout:   90 * time.Second,
 		ForceAttemptHTTP2: true,
@@ -137,29 +133,24 @@ func NewDoHLocalNameServer(url *url.URL, clientIP net.IP) *DoHNameServer {
 		Transport: tr,
 	}
 	newError("DNS: created Local DOH client for ", url.String()).AtInfo().WriteToLog()
-	if clientIP != nil {
-		newError("DNS: Local DOH client ", url.String(), " uses clientip ", clientIP.String()).AtInfo().WriteToLog()
-	}
 	return s
 }
 
-func baseDOHNameServer(url *url.URL, prefix string, clientIP net.IP) *DoHNameServer {
+func baseDOHNameServer(url *url.URL, prefix string) *DoHNameServer {
 	s := &DoHNameServer{
-		ips:      make(map[string]record),
-		clientIP: clientIP,
-		pub:      pubsub.NewService(),
-		name:     prefix + "//" + url.Host,
-		dohURL:   url.String(),
+		ips:    make(map[string]record),
+		pub:    pubsub.NewService(),
+		name:   prefix + "//" + url.Host,
+		dohURL: url.String(),
 	}
 	s.cleanup = &task.Periodic{
 		Interval: time.Minute,
 		Execute:  s.Cleanup,
 	}
-
 	return s
 }
 
-// Name returns client name
+// Name implements Server.
 func (s *DoHNameServer) Name() string {
 	return s.name
 }
@@ -242,7 +233,7 @@ func (s *DoHNameServer) newReqID() uint16 {
 	return uint16(atomic.AddUint32(&s.reqID, 1))
 }
 
-func (s *DoHNameServer) sendQuery(ctx context.Context, domain string, option dns_feature.IPOption) {
+func (s *DoHNameServer) sendQuery(ctx context.Context, domain string, clientIP net.IP, option dns_feature.IPOption) {
 	newError(s.name, " querying: ", domain).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 
 	if s.name+"." == "DOH//"+domain {
@@ -250,7 +241,7 @@ func (s *DoHNameServer) sendQuery(ctx context.Context, domain string, option dns
 		return
 	}
 
-	reqs := buildReqMsgs(domain, option, s.newReqID, genEDNS0Options(s.clientIP))
+	reqs := buildReqMsgs(domain, option, s.newReqID, genEDNS0Options(clientIP))
 
 	var deadline time.Time
 	if d, ok := ctx.Deadline(); ok {
@@ -356,7 +347,7 @@ func (s *DoHNameServer) findIPsForDomain(domain string, option dns_feature.IPOpt
 	}
 
 	if len(ips) > 0 {
-		return toNetIP(ips), nil
+		return toNetIP(ips)
 	}
 
 	if lastErr != nil {
@@ -370,8 +361,8 @@ func (s *DoHNameServer) findIPsForDomain(domain string, option dns_feature.IPOpt
 	return nil, errRecordNotFound
 }
 
-// QueryIP is called from dns.Server->queryIPTimeout
-func (s *DoHNameServer) QueryIP(ctx context.Context, domain string, option dns_feature.IPOption) ([]net.IP, error) { // nolint: dupl
+// QueryIP implements Server.
+func (s *DoHNameServer) QueryIP(ctx context.Context, domain string, clientIP net.IP, option dns_feature.IPOption) ([]net.IP, error) { // nolint: dupl
 	fqdn := Fqdn(domain)
 
 	ips, err := s.findIPsForDomain(fqdn, option)
@@ -407,7 +398,7 @@ func (s *DoHNameServer) QueryIP(ctx context.Context, domain string, option dns_f
 		}
 		close(done)
 	}()
-	s.sendQuery(ctx, fqdn, option)
+	s.sendQuery(ctx, fqdn, clientIP, option)
 	start := time.Now()
 
 	for {

@@ -14,25 +14,6 @@ type StaticHosts struct {
 	matchers *strmatcher.MatcherGroup
 }
 
-var typeMap = map[DomainMatchingType]strmatcher.Type{
-	DomainMatchingType_Full:      strmatcher.Full,
-	DomainMatchingType_Subdomain: strmatcher.Domain,
-	DomainMatchingType_Keyword:   strmatcher.Substr,
-	DomainMatchingType_Regex:     strmatcher.Regex,
-}
-
-func toStrMatcher(t DomainMatchingType, domain string) (strmatcher.Matcher, error) {
-	strMType, f := typeMap[t]
-	if !f {
-		return nil, newError("unknown mapping type", t).AtWarning()
-	}
-	matcher, err := strMType.New(domain)
-	if err != nil {
-		return nil, newError("failed to create str matcher").Base(err)
-	}
-	return matcher, nil
-}
-
 // NewStaticHosts creates a new StaticHosts instance.
 func NewStaticHosts(hosts []*Config_HostMapping, legacy map[string]*net.IPOrDomain) (*StaticHosts, error) {
 	g := new(strmatcher.MatcherGroup)
@@ -100,24 +81,35 @@ func filterIP(ips []net.Address, option dns.IPOption) []net.Address {
 			filtered = append(filtered, ip)
 		}
 	}
-	if len(filtered) == 0 {
-		return nil
-	}
 	return filtered
 }
 
-// LookupIP returns IP address for the given domain, if exists in this StaticHosts.
-func (h *StaticHosts) LookupIP(domain string, option dns.IPOption) []net.Address {
-	indices := h.matchers.Match(domain)
-	if len(indices) == 0 {
-		return nil
-	}
-	ips := []net.Address{}
-	for _, id := range indices {
+func (h *StaticHosts) lookupInternal(domain string) []net.Address {
+	var ips []net.Address
+	for _, id := range h.matchers.Match(domain) {
 		ips = append(ips, h.ips[id]...)
 	}
-	if len(ips) == 1 && ips[0].Family().IsDomain() {
-		return ips
+	return ips
+}
+
+func (h *StaticHosts) lookup(domain string, option dns.IPOption, maxDepth int) []net.Address {
+	switch addrs := h.lookupInternal(domain); {
+	case len(addrs) == 0: // Not recorded in static hosts, return nil
+		return nil
+	case len(addrs) == 1 && addrs[0].Family().IsDomain(): // Try to unwrap domain
+		if maxDepth > 0 {
+			unwrapped := h.lookup(addrs[0].Domain(), option, maxDepth-1)
+			if unwrapped != nil {
+				return unwrapped
+			}
+		}
+		return addrs
+	default: // IP record found, return a non-nil IP array
+		return filterIP(addrs, option)
 	}
-	return filterIP(ips, option)
+}
+
+// Lookup returns IP addresses or proxied domain for the given domain, if exists in this StaticHosts.
+func (h *StaticHosts) Lookup(domain string, option dns.IPOption) []net.Address {
+	return h.lookup(domain, option, 5)
 }

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-
 	. "github.com/xtls/xray-core/app/dns"
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/net"
@@ -40,7 +39,7 @@ func TestStaticHosts(t *testing.T) {
 	common.Must(err)
 
 	{
-		ips := hosts.LookupIP("example.com", dns.IPOption{
+		ips := hosts.Lookup("example.com", dns.IPOption{
 			IPv4Enable: true,
 			IPv6Enable: true,
 		})
@@ -53,7 +52,7 @@ func TestStaticHosts(t *testing.T) {
 	}
 
 	{
-		ips := hosts.LookupIP("www.example.cn", dns.IPOption{
+		ips := hosts.Lookup("www.example.cn", dns.IPOption{
 			IPv4Enable: true,
 			IPv6Enable: true,
 		})
@@ -66,7 +65,7 @@ func TestStaticHosts(t *testing.T) {
 	}
 
 	{
-		ips := hosts.LookupIP("baidu.com", dns.IPOption{
+		ips := hosts.Lookup("baidu.com", dns.IPOption{
 			IPv4Enable: false,
 			IPv6Enable: true,
 		})
