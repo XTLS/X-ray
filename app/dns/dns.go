@@ -65,6 +65,10 @@ func New(ctx context.Context, config *Config) (*DNS, error) {
 	for _, ns := range config.NameServer {
 		domainRuleCount += len(ns.PrioritizedDomain)
 	}
+	// Fixes https://github.com/v2fly/v2ray-core/issues/529
+	// Compatible with `localhost` nameserver specified in config file
+	domainRuleCount += len(localTLDsAndDotlessDomains)
+
 	// MatcherInfos is ensured to cover the maximum index domainMatcher could return, where matcher's index starts from 1
 	matcherInfos := make([]DomainMatcherInfo, domainRuleCount+1)
 	domainMatcher := &strmatcher.MatcherGroup{}
