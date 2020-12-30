@@ -309,23 +309,14 @@ func sniffer(ctx context.Context, cReader *cachedReader, metadataOnly bool) (Sni
 func (d *DefaultDispatcher) routedDispatch(ctx context.Context, link *transport.Link, destination net.Destination) {
 	var handler outbound.Handler
 
-	skipRoutePick := false
-	if content := session.ContentFromContext(ctx); content != nil {
-		skipRoutePick = content.SkipRoutePick
-	}
-
-	routingLink := routing_session.AsRoutingContext(ctx)
-	inTag := routingLink.GetInboundTag()
-	isPickRoute := false
-	if d.router != nil && !skipRoutePick {
-		if route, err := d.router.PickRoute(routingLink); err == nil {
-			outTag := route.GetOutboundTag()
-			isPickRoute = true
-			if h := d.ohm.GetHandler(outTag); h != nil {
-				newError("taking detour [", outTag, "] for [", destination, "]").WriteToLog(session.ExportIDToError(ctx))
+	if d.router != nil {
+		if route, err := d.router.PickRoute(routing_session.AsRoutingContext(ctx)); err == nil {
+			tag := route.GetOutboundTag()
+			if h := d.ohm.GetHandler(tag); h != nil {
+				newError("taking detour [", tag, "] for [", destination, "]").WriteToLog(session.ExportIDToError(ctx))
 				handler = h
 			} else {
-				newError("non existing outTag: ", outTag).AtWarning().WriteToLog(session.ExportIDToError(ctx))
+				newError("non existing outTag: ", tag).AtWarning().WriteToLog(session.ExportIDToError(ctx))
 			}
 		} else {
 			newError("default route for ", destination).WriteToLog(session.ExportIDToError(ctx))
@@ -345,19 +336,7 @@ func (d *DefaultDispatcher) routedDispatch(ctx context.Context, link *transport.
 
 	if accessMessage := log.AccessMessageFromContext(ctx); accessMessage != nil {
 		if tag := handler.Tag(); tag != "" {
-			if isPickRoute {
-				if inTag != "" {
-					accessMessage.Detour = inTag + " -> " + tag
-				} else {
-					accessMessage.Detour = tag
-				}
-			} else {
-				if inTag != "" {
-					accessMessage.Detour = inTag + " >> " + tag
-				} else {
-					accessMessage.Detour = tag
-				}
-			}
+			accessMessage.Detour = tag
 		}
 		log.Record(accessMessage)
 	}
