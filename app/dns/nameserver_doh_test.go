@@ -2,25 +2,25 @@ package dns_test
 
 import (
 	"context"
-	"github.com/xtls/xray-core/features/dns"
 	"net/url"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 
-	. "github.com/xtls/xray-core/app/dns"
-	"github.com/xtls/xray-core/common"
-	"github.com/xtls/xray-core/common/net"
+	. "github.com/v2fly/v2ray-core/v4/app/dns"
+	"github.com/v2fly/v2ray-core/v4/common"
+	"github.com/v2fly/v2ray-core/v4/common/net"
+	dns_feature "github.com/v2fly/v2ray-core/v4/features/dns"
 )
 
-func TestQUICNameServer(t *testing.T) {
-	url, err := url.Parse("quic://dns.adguard.com")
+func TestDOHNameServer(t *testing.T) {
+	url, err := url.Parse("https+local://1.1.1.1/dns-query")
 	common.Must(err)
-	s, err := NewQUICNameServer(url)
-	common.Must(err)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-	ips, err := s.QueryIP(ctx, "google.com", net.IP(nil), dns.IPOption{
+
+	s := NewDoHLocalNameServer(url)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ips, err := s.QueryIP(ctx, "google.com", net.IP(nil), dns_feature.IPOption{
 		IPv4Enable: true,
 		IPv6Enable: true,
 	}, false)
@@ -31,12 +31,12 @@ func TestQUICNameServer(t *testing.T) {
 	}
 }
 
-func TestQUICNameServerWithCache(t *testing.T) {
-	url, err := url.Parse("quic://dns.adguard.com")
+func TestDOHNameServerWithCache(t *testing.T) {
+	url, err := url.Parse("https+local://1.1.1.1/dns-query")
 	common.Must(err)
-	s, err := NewQUICNameServer(url)
-	common.Must(err)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+
+	s := NewDoHLocalNameServer(url)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	ips, err := s.QueryIP(ctx, "google.com", net.IP(nil), dns_feature.IPOption{
 		IPv4Enable: true,
 		IPv6Enable: true,

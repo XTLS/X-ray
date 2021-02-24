@@ -71,4 +71,7 @@ message Config {
   string tag = 6;
 
   reserved 7;
+
+  // DisableCache Disable DNS cache
+  bool disableCache = 8;
 }

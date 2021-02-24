@@ -24,10 +24,10 @@ import (
 // DNS is a DNS rely server.
 type DNS struct {
 	sync.Mutex
-	tag     string
-	hosts   *StaticHosts
-	clients []*Client
-
+	tag           string
+	disableCache  bool
+	hosts         *StaticHosts
+	clients       []*Client
 	domainMatcher strmatcher.IndexMatcher
 	matcherInfos  []DomainMatcherInfo
 }
@@ -116,6 +116,7 @@ func New(ctx context.Context, config *Config) (*DNS, error) {
 		clients:       clients,
 		domainMatcher: domainMatcher,
 		matcherInfos:  matcherInfos,
+		disableCache:  config.DisableCache,
 	}, nil
 }
 
@@ -192,7 +193,7 @@ func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, er
 	errs := []error{}
 	ctx := session.ContextWithInbound(context.Background(), &session.Inbound{Tag: s.tag})
 	for _, client := range s.sortClients(domain) {
-		ips, err := client.QueryIP(ctx, domain, option)
+		ips, err := client.QueryIP(ctx, domain, option, s.disableCache)
 		if len(ips) > 0 {
 			return ips, nil
 		}

@@ -19,7 +19,7 @@ type Server interface {
 	// Name of the Client.
 	Name() string
 	// QueryIP sends IP queries to its configured server.
-	QueryIP(ctx context.Context, domain string, clientIP net.IP, option dns.IPOption) ([]net.IP, error)
+	QueryIP(ctx context.Context, domain string, clientIP net.IP, option dns.IPOption, disableCache bool) ([]net.IP, error)
 }
 
 // Client is the interface for DNS client.
@@ -164,9 +164,9 @@ func (c *Client) Name() string {
 }
 
 // QueryIP send DNS query to the name server with the client's IP.
-func (c *Client) QueryIP(ctx context.Context, domain string, option dns.IPOption) ([]net.IP, error) {
+func (c *Client) QueryIP(ctx context.Context, domain string, option dns.IPOption, disableCache bool) ([]net.IP, error) {
 	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
-	ips, err := c.server.QueryIP(ctx, domain, c.clientIP, option)
+	ips, err := c.server.QueryIP(ctx, domain, c.clientIP, option, disableCache)
 	cancel()
 
 	if err != nil {

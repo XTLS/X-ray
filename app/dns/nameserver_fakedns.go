@@ -20,7 +20,7 @@ func (FakeDNSServer) Name() string {
 	return "FakeDNS"
 }
 
-func (f *FakeDNSServer) QueryIP(ctx context.Context, domain string, _ dns.IPOption) ([]net.IP, error) {
+func (f *FakeDNSServer) QueryIP(ctx context.Context, domain string, _ dns.IPOption, _ bool) ([]net.IP, error) {
 	if f.fakeDNSEngine == nil {
 		if err := core.RequireFeatures(ctx, func(fd dns.FakeDNSEngine) {
 			f.fakeDNSEngine = fd
