@@ -60,7 +60,7 @@ func NewServer(dest net.Destination, dispatcher routing.Dispatcher) (Server, err
 }
 
 // NewClient creates a DNS client managing a name server with client IP, domain rules and expected IPs.
-func NewClient(ctx context.Context, ns *NameServer, clientIP net.IP, container router.GeoIPMatcherContainer, updateDomainRule func(strmatcher.Matcher, int) error) (*Client, error) {
+func NewClient(ctx context.Context, ns *NameServer, clientIP net.IP, container router.GeoIPMatcherContainer, matcherInfos *[]DomainMatcherInfo, updateDomainRule func(strmatcher.Matcher, int, []DomainMatcherInfo) error) (*Client, error) {
 	client := &Client{}
 	err := core.RequireFeatures(ctx, func(dispatcher routing.Dispatcher) error {
 		// Create a new server for each client for now
@@ -73,6 +73,19 @@ func NewClient(ctx context.Context, ns *NameServer, clientIP net.IP, container r
 		if _, isLocalDNS := server.(*LocalNameServer); isLocalDNS {
 			ns.PrioritizedDomain = append(ns.PrioritizedDomain, localTLDsAndDotlessDomains...)
 			ns.OriginalRules = append(ns.OriginalRules, localTLDsAndDotlessDomainsRule)
+			// The following lines is a solution to avoid core panics（rule index out of range） when setting `localhost` DNS client in config.
+			// Because the `localhost` DNS client will apend len(localTLDsAndDotlessDomains) rules into matcherInfos to match `geosite:private` default rule.
+			// But `matcherInfos` has no enough length to add rules, which leads to core panics (rule index out of range).
+			// To avoid this, the length of `matcherInfos` must be equal to the expected, so manually append it with Golang default zero value first for later modification.
+			// Related issues:
+			// https://github.com/v2fly/v2ray-core/issues/529
+			// https://github.com/v2fly/v2ray-core/issues/719
+			for i := 0; i < len(localTLDsAndDotlessDomains); i++ {
+				*matcherInfos = append(*matcherInfos, DomainMatcherInfo{
+					clientIdx:     uint16(0),
+					domainRuleIdx: uint16(0),
+				})
+			}
 		}
 
 		// Establish domain rules
@@ -99,7 +112,7 @@ func NewClient(ctx context.Context, ns *NameServer, clientIP net.IP, container r
 				rules = append(rules, domainRule.String())
 				ruleCurr++
 			}
-			err = updateDomainRule(domainRule, originalRuleIdx)
+			err = updateDomainRule(domainRule, originalRuleIdx, *matcherInfos)
 			if err != nil {
 				return newError("failed to create prioritized domain").Base(err).AtWarning()
 			}

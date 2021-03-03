@@ -65,9 +65,6 @@ func New(ctx context.Context, config *Config) (*DNS, error) {
 	for _, ns := range config.NameServer {
 		domainRuleCount += len(ns.PrioritizedDomain)
 	}
-	// Fixes https://github.com/v2fly/v2ray-core/issues/529
-	// Compatible with `localhost` nameserver specified in config file
-	domainRuleCount += len(localTLDsAndDotlessDomains)
 
 	// MatcherInfos is ensured to cover the maximum index domainMatcher could return, where matcher's index starts from 1
 	matcherInfos := make([]DomainMatcherInfo, domainRuleCount+1)
@@ -85,7 +82,7 @@ func New(ctx context.Context, config *Config) (*DNS, error) {
 
 	for _, ns := range config.NameServer {
 		clientIdx := len(clients)
-		updateDomain := func(domainRule strmatcher.Matcher, originalRuleIdx int) error {
+		updateDomain := func(domainRule strmatcher.Matcher, originalRuleIdx int, matcherInfos []DomainMatcherInfo) error {
 			midx := domainMatcher.Add(domainRule)
 			matcherInfos[midx] = DomainMatcherInfo{
 				clientIdx:     uint16(clientIdx),
@@ -99,7 +96,7 @@ func New(ctx context.Context, config *Config) (*DNS, error) {
 		case net.IPv4len, net.IPv6len:
 			myClientIP = net.IP(ns.ClientIp)
 		}
-		client, err := NewClient(ctx, ns, myClientIP, geoipContainer, updateDomain)
+		client, err := NewClient(ctx, ns, myClientIP, geoipContainer, &matcherInfos, updateDomain)
 		if err != nil {
 			return nil, newError("failed to create client").Base(err)
 		}
