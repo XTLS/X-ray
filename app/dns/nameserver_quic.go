@@ -169,7 +169,7 @@ func (s *QUICNameServer) sendQuery(ctx context.Context, domain string, clientIP 
 		go func(r *dnsRequest) {
 			// generate new context for each req, using same context
 			// may cause reqs all aborted if any one encounter an error
-			dnsCtx := context.Background()
+			dnsCtx := ctx
 
 			// reserve internal dns server requested Inbound
 			if inbound := session.InboundFromContext(ctx); inbound != nil {
