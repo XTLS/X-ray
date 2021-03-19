@@ -6,7 +6,6 @@ package mocks
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	dns "github.com/xtls/xray-core/features/dns"
 	net "net"
 	reflect "reflect"
 )
@@ -49,18 +48,18 @@ func (mr *DNSClientMockRecorder) Close() *gomock.Call {
 }
 
 // LookupIP mocks base method
-func (m *DNSClient) LookupIP(arg0 string, arg1 dns.IPOption) ([]net.IP, error) {
+func (m *DNSClient) LookupIP(arg0 string) ([]net.IP, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LookupIP", arg0, arg1)
+	ret := m.ctrl.Call(m, "LookupIP", arg0)
 	ret0, _ := ret[0].([]net.IP)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LookupIP indicates an expected call of LookupIP
-func (mr *DNSClientMockRecorder) LookupIP(arg0, arg1 interface{}) *gomock.Call {
+func (mr *DNSClientMockRecorder) LookupIP(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LookupIP", reflect.TypeOf((*DNSClient)(nil).LookupIP), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LookupIP", reflect.TypeOf((*DNSClient)(nil).LookupIP), arg0)
 }
 
 // Start mocks base method

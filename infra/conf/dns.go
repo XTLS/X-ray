@@ -108,11 +108,12 @@ var typeMap = map[router.Domain_Type]dns.DomainMatchingType{
 
 // DNSConfig is a JSON serializable object for dns.Config.
 type DNSConfig struct {
-	Servers      []*NameServerConfig `json:"servers"`
-	Hosts        map[string]*Address `json:"hosts"`
-	ClientIP     *Address            `json:"clientIp"`
-	Tag          string              `json:"tag"`
-	DisableCache bool                `json:"disableCache"`
+	Servers       []*NameServerConfig `json:"servers"`
+	Hosts         map[string]*Address `json:"hosts"`
+	ClientIP      *Address            `json:"clientIp"`
+	Tag           string              `json:"tag"`
+	QueryStrategy string              `json:"queryStrategy"`
+	DisableCache  bool                `json:"disableCache"`
 }
 
 func getHostMapping(addr *Address) *dns.Config_HostMapping {
@@ -139,6 +140,16 @@ func (c *DNSConfig) Build() (*dns.Config, error) {
 			return nil, newError("not an IP address:", c.ClientIP.String())
 		}
 		config.ClientIp = []byte(c.ClientIP.IP())
+	}
+
+	config.QueryStrategy = dns.QueryStrategy_USE_IP
+	switch strings.ToLower(c.QueryStrategy) {
+	case "useip", "use_ip", "use-ip":
+		config.QueryStrategy = dns.QueryStrategy_USE_IP
+	case "useip4", "useipv4", "use_ip4", "use_ipv4", "use_ip_v4", "use-ip4", "use-ipv4", "use-ip-v4":
+		config.QueryStrategy = dns.QueryStrategy_USE_IP4
+	case "useip6", "useipv6", "use_ip6", "use_ipv6", "use_ip_v6", "use-ip6", "use-ipv6", "use-ip-v6":
+		config.QueryStrategy = dns.QueryStrategy_USE_IP6
 	}
 
 	for _, server := range c.Servers {

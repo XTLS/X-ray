@@ -26,6 +26,7 @@ type DNS struct {
 	sync.Mutex
 	tag           string
 	disableCache  bool
+	ipOption      *dns.IPOption
 	hosts         *StaticHosts
 	clients       []*Client
 	domainMatcher strmatcher.IndexMatcher
@@ -53,6 +54,28 @@ func New(ctx context.Context, config *Config) (*DNS, error) {
 		clientIP = net.IP(config.ClientIp)
 	default:
 		return nil, newError("unexpected client IP length ", len(config.ClientIp))
+	}
+
+	var ipOption *dns.IPOption
+	switch config.QueryStrategy {
+	case QueryStrategy_USE_IP:
+		ipOption = &dns.IPOption{
+			IPv4Enable: true,
+			IPv6Enable: true,
+			FakeEnable: false,
+		}
+	case QueryStrategy_USE_IP4:
+		ipOption = &dns.IPOption{
+			IPv4Enable: true,
+			IPv6Enable: false,
+			FakeEnable: false,
+		}
+	case QueryStrategy_USE_IP6:
+		ipOption = &dns.IPOption{
+			IPv4Enable: false,
+			IPv6Enable: true,
+			FakeEnable: false,
+		}
 	}
 
 	hosts, err := NewStaticHosts(config.StaticHosts, config.Hosts)
@@ -110,6 +133,7 @@ func New(ctx context.Context, config *Config) (*DNS, error) {
 	return &DNS{
 		tag:           tag,
 		hosts:         hosts,
+		ipOption:      ipOption,
 		clients:       clients,
 		domainMatcher: domainMatcher,
 		matcherInfos:  matcherInfos,
@@ -204,6 +228,22 @@ func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, er
 	}
 
 	return nil, newError("returning nil for domain ", domain).Base(errors.Combine(errs...))
+}
+
+// GetIPOption implements ClientWithIPOption.
+func (s *DNS) GetIPOption() *dns.IPOption {
+	return s.ipOption
+}
+
+// SetQueryOption implements ClientWithIPOption.
+func (s *DNS) SetQueryOption(isIPv4Enable, isIPv6Enable bool) {
+	s.ipOption.IPv4Enable = isIPv4Enable
+	s.ipOption.IPv6Enable = isIPv6Enable
+}
+
+// SetFakeDNSOption implements ClientWithIPOption.
+func (s *DNS) SetFakeDNSOption(isFakeEnable bool) {
+	s.ipOption.FakeEnable = isFakeEnable
 }
 
 func (s *DNS) sortClients(domain string) []*Client {
