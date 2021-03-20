@@ -2,6 +2,7 @@ package dns_test
 
 import (
 	"context"
+	"github.com/xtls/xray-core/common/net"
 	"testing"
 	"time"
 
@@ -12,8 +13,8 @@ import (
 
 func TestLocalNameServer(t *testing.T) {
 	s := NewLocalNameServer()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-	ips, err := s.QueryIP(ctx, "google.com", net.IP{}, IPOption{
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ips, err := s.QueryIP(ctx, "google.com", net.IP{}, dns_feature.IPOption{
 		IPv4Enable: true,
 		IPv6Enable: true,
 		FakeEnable: false,

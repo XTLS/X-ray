@@ -8,10 +8,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	. "github.com/v2fly/v2ray-core/v4/app/dns"
-	"github.com/v2fly/v2ray-core/v4/common"
-	"github.com/v2fly/v2ray-core/v4/common/net"
-	dns_feature "github.com/v2fly/v2ray-core/v4/features/dns"
+	. "github.com/xtls/xray-core/app/dns"
+	"github.com/xtls/xray-core/common"
+	"github.com/xtls/xray-core/common/net"
+	dns_feature "github.com/xtls/xray-core/features/dns"
 )
 
 func TestDOHNameServer(t *testing.T) {
@@ -47,7 +47,7 @@ func TestDOHNameServerWithCache(t *testing.T) {
 		t.Error("expect some ips, but got 0")
 	}
 
-	ctx2, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	ctx2, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	ips2, err := s.QueryIP(ctx2, "google.com", net.IP(nil), dns_feature.IPOption{
 		IPv4Enable: true,
 		IPv6Enable: true,
