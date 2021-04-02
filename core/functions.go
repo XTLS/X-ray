@@ -50,6 +50,11 @@ func Dial(ctx context.Context, v *Instance, dest net.Destination) (net.Conn, err
 	if dispatcher == nil {
 		return nil, newError("routing.Dispatcher is not registered in Xray core")
 	}
+
+	if ctx.Value(xrayKey) == nil {
+		ctx = context.WithValue(ctx, xrayKey, v)
+	}
+
 	r, err := dispatcher.(routing.Dispatcher).Dispatch(ctx, dest)
 	if err != nil {
 		return nil, err
