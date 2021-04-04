@@ -15,7 +15,7 @@ import (
 func CreateObject(v *Instance, config interface{}) (interface{}, error) {
 	ctx := v.ctx
 	if v != nil {
-		ctx = context.WithValue(ctx, xrayKey, v)
+		ctx = ToContext(v.ctx, v)
 	}
 	return common.CreateObject(ctx, config)
 }
@@ -46,9 +46,7 @@ func StartInstance(configFormat string, configBytes []byte) (*Instance, error) {
 //
 // xray:api:stable
 func Dial(ctx context.Context, v *Instance, dest net.Destination) (net.Conn, error) {
-	if FromContext(ctx) == nil {
-		ctx = context.WithValue(ctx, xrayKey, v)
-	}
+	ctx = ToContext(ctx, v)
 
 	dispatcher := v.GetFeature(routing.DispatcherType())
 	if dispatcher == nil {
@@ -75,9 +73,7 @@ func Dial(ctx context.Context, v *Instance, dest net.Destination) (net.Conn, err
 //
 // xray:api:beta
 func DialUDP(ctx context.Context, v *Instance) (net.PacketConn, error) {
-	if FromContext(ctx) == nil {
-		ctx = context.WithValue(ctx, xrayKey, v)
-	}
+	ctx = ToContext(ctx, v)
 
 	dispatcher := v.GetFeature(routing.DispatcherType())
 	if dispatcher == nil {
