@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	. "github.com/xtls/xray-core/core"
+	_ "unsafe"
 )
 
 func TestFromContextPanic(t *testing.T) {
@@ -18,6 +19,9 @@ func TestFromContextPanic(t *testing.T) {
 	MustFromContext(context.Background())
 }
 
+//go:linkname mustToContextForced github.com/v2fly/v2ray-core/v4.mustToContext
+func mustToContextForced(ctx context.Context, v *Instance) context.Context
+
 func TestToContextPanic(t *testing.T) {
 	defer func() {
 		r := recover()
@@ -26,5 +30,5 @@ func TestToContextPanic(t *testing.T) {
 		}
 	}()
 
-	MustToContext(context.Background(), &Instance{})
+	mustToContextForced(context.Background(), &Instance{})
 }
