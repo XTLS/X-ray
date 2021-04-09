@@ -15,3 +15,8 @@ type FakeDNSEngine interface {
 }
 
 var FakeIPPool = "198.18.0.0/16"
+
+type FakeDNSEngineRev0 interface {
+	IsIPInIPPool(ip net.Address) bool
+	GetFakeIPForDomain3(domain string, IPv4, IPv6 bool) []net.Address
+}
