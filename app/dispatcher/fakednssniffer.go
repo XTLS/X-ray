@@ -32,6 +32,15 @@ func newFakeDNSSniffer(ctx context.Context) (protocolSnifferWithMetadata, error)
 				return &fakeDNSSniffResult{domainName: domainFromFakeDNS}, nil
 			}
 		}
+
+		if ipAddressInRangeValueI := ctx.Value(ipAddressInRange); ipAddressInRangeValueI != nil {
+			ipAddressInRangeValue := ipAddressInRangeValueI.(*ipAddressInRangeOpt)
+			if fkr0, ok := fakeDNSEngine.(dns.FakeDNSEngineRev0); ok {
+				inPool := fkr0.IsIPInIPPool(Target.Address)
+				ipAddressInRangeValue.addressInRange = &inPool
+			}
+		}
+
 		return nil, common.ErrNoClue
 	}, metadataSniffer: true}, nil
 }
@@ -46,4 +55,56 @@ func (fakeDNSSniffResult) Protocol() string {
 
 func (f fakeDNSSniffResult) Domain() string {
 	return f.domainName
+}
+
+type fakeDnsExtraOpts int
+
+const ipAddressInRange fakeDnsExtraOpts = 1
+
+type ipAddressInRangeOpt struct {
+	addressInRange *bool
+}
+
+type DNSThenOthersSniffResult struct {
+	domainName string
+}
+
+func (DNSThenOthersSniffResult) Protocol() string {
+	return "fakedns+others"
+}
+
+func (f DNSThenOthersSniffResult) Domain() string {
+	return f.domainName
+}
+
+func newFakeDNSThenOthers(ctx context.Context, fakeDNSSniffer protocolSnifferWithMetadata, others []protocolSnifferWithMetadata) (protocolSnifferWithMetadata, error) {
+	return protocolSnifferWithMetadata{
+		protocolSniffer: func(ctx context.Context, bytes []byte) (SniffResult, error) {
+			ipAddressInRangeValue := &ipAddressInRangeOpt{}
+			ctx = context.WithValue(ctx, ipAddressInRange, ipAddressInRangeValue)
+			result, err := fakeDNSSniffer.protocolSniffer(ctx, bytes)
+			if err == nil {
+				return result, nil
+			}
+			if ipAddressInRangeValue.addressInRange != nil {
+				if *ipAddressInRangeValue.addressInRange == true {
+					for _, v := range others {
+						if v.metadataSniffer || bytes != nil {
+							if result, err := v.protocolSniffer(ctx, bytes); err == nil {
+								return DNSThenOthersSniffResult{result.Domain()}, nil
+							}
+						}
+					}
+					return nil, common.ErrNoClue
+				} else {
+					newError("ip address not in fake dns range, return as is").AtDebug().WriteToLog()
+					return nil, common.ErrNoClue
+				}
+			} else {
+				newError("fake dns sniffer did not set address in range option, assume false.").AtWarning().WriteToLog()
+				return nil, common.ErrNoClue
+			}
+		},
+		metadataSniffer: true,
+	}, nil
 }
