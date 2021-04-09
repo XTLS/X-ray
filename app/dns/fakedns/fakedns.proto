@@ -10,3 +10,7 @@ message FakeDnsPool{
   string ip_pool = 1; //CIDR of IP pool used as fake DNS IP
   int64  lruSize = 2; //Size of Pool for remembering relationship between domain name and IP address
 }
+
+message FakeDnsPoolMulti{
+  repeated FakeDnsPool pools = 1;
+}
