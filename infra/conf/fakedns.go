@@ -7,12 +7,26 @@ import (
 	"github.com/xtls/xray-core/features/dns"
 )
 
-type FakeDNSConfig struct {
+type FakeDNSPoolElementConfig struct {
 	IPPool  string `json:"ipPool"`
 	LruSize int64  `json:"poolSize"`
 }
 
+type FakeDNSConfig struct {
+	IPPool  string                      `json:"ipPool"`
+	LruSize int64                       `json:"poolSize"`
+	Pools   *[]FakeDNSPoolElementConfig `json:"pools,omitempty"`
+}
+
 func (f FakeDNSConfig) Build() (proto.Message, error) {
+	if f.Pools != nil {
+		fakeDNSPool := &fakedns.FakeDnsPoolMulti{}
+		for _, v := range *f.Pools {
+			fakeDNSPool.Pools = append(fakeDNSPool.Pools, &fakedns.FakeDnsPool{IpPool: v.IPPool, LruSize: v.LruSize})
+		}
+		return fakeDNSPool, nil
+	}
+
 	return &fakedns.FakeDnsPool{
 		IpPool:  f.IPPool,
 		LruSize: f.LruSize,
