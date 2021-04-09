@@ -24,13 +24,14 @@ import (
 // DNS is a DNS rely server.
 type DNS struct {
 	sync.Mutex
-	tag           string
-	disableCache  bool
-	ipOption      *dns.IPOption
-	hosts         *StaticHosts
-	clients       []*Client
-	domainMatcher strmatcher.IndexMatcher
-	matcherInfos  []DomainMatcherInfo
+	tag             string
+	disableCache    bool
+	disableFallback bool
+	ipOption        *dns.IPOption
+	hosts           *StaticHosts
+	clients         []*Client
+	domainMatcher   strmatcher.IndexMatcher
+	matcherInfos    []DomainMatcherInfo
 }
 
 // DomainMatcherInfo contains information attached to index returned by Server.domainMatcher
@@ -137,7 +138,7 @@ func New(ctx context.Context, config *Config) (*DNS, error) {
 		clients:       clients,
 		domainMatcher: domainMatcher,
 		matcherInfos:  matcherInfos,
-		disableCache:  config.DisableCache,
+		disableCache:  config.DisableCache, disableFallback: config.DisableFallback,
 	}, nil
 }
 
@@ -266,14 +267,16 @@ func (s *DNS) sortClients(domain string) []*Client {
 		clientNames = append(clientNames, client.Name())
 	}
 
-	// Default round-robin query
-	for idx, client := range s.clients {
-		if clientUsed[idx] {
-			continue
+	if !s.disableFallback {
+		// Default round-robin query
+		for idx, client := range s.clients {
+			if clientUsed[idx] || client.skipFallback {
+				continue
+			}
+			clientUsed[idx] = true
+			clients = append(clients, client)
+			clientNames = append(clientNames, client.Name())
 		}
-		clientUsed[idx] = true
-		clients = append(clients, client)
-		clientNames = append(clientNames, client.Name())
 	}
 
 	if len(domainRules) > 0 {
@@ -282,6 +285,13 @@ func (s *DNS) sortClients(domain string) []*Client {
 	if len(clientNames) > 0 {
 		newError("domain ", domain, " will use DNS in order: ", clientNames).AtDebug().WriteToLog()
 	}
+
+	if len(clients) == 0 {
+		clients = append(clients, s.clients[0])
+		clientNames = append(clientNames, s.clients[0].Name())
+		newError("domain ", domain, " will use the first DNS: ", clientNames).AtDebug().WriteToLog()
+	}
+
 	return clients
 }
 
