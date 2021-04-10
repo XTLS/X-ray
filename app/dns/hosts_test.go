@@ -31,6 +31,7 @@ func TestStaticHosts(t *testing.T) {
 			Domain: "baidu.com",
 			Ip: [][]byte{
 				{127, 0, 0, 1},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 			},
 		},
 	}
