@@ -14,7 +14,7 @@ type FakeDNSEngine interface {
 	GetFakeIPRange() *gonet.IPNet
 }
 
-var FakeIPPool = "198.18.0.0/16"
+var FakeIPPool = "198.18.0.0/15"
 
 type FakeDNSEngineRev0 interface {
 	IsIPInIPPool(ip net.Address) bool

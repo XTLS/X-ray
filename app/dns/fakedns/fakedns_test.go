@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	ipPrefix = "198.18."
+	ipPrefix = "198.1"
 )
 
 func TestNewFakeDnsHolder(_ *testing.T) {

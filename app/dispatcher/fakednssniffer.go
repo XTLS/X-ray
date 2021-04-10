@@ -2,6 +2,7 @@ package dispatcher
 
 import (
 	"context"
+	"strings"
 
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/net"
@@ -66,7 +67,15 @@ type ipAddressInRangeOpt struct {
 }
 
 type DNSThenOthersSniffResult struct {
-	domainName string
+	domainName           string
+	protocolOriginalName string
+}
+
+func (f DNSThenOthersSniffResult) IsProtoSubsetOf(protocolName string) bool {
+	if strings.HasPrefix(protocolName, f.protocolOriginalName) {
+		return true
+	}
+	return false
 }
 
 func (DNSThenOthersSniffResult) Protocol() string {
@@ -91,7 +100,7 @@ func newFakeDNSThenOthers(ctx context.Context, fakeDNSSniffer protocolSnifferWit
 					for _, v := range others {
 						if v.metadataSniffer || bytes != nil {
 							if result, err := v.protocolSniffer(ctx, bytes); err == nil {
-								return DNSThenOthersSniffResult{result.Domain()}, nil
+								return DNSThenOthersSniffResult{domainName: result.Domain(), protocolOriginalName: result.Protocol()}, nil
 							}
 						}
 					}
@@ -105,6 +114,6 @@ func newFakeDNSThenOthers(ctx context.Context, fakeDNSSniffer protocolSnifferWit
 				return nil, common.ErrNoClue
 			}
 		},
-		metadataSniffer: true,
+		metadataSniffer: false,
 	}, nil
 }
