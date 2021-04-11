@@ -207,7 +207,7 @@ func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, er
 		newError("domain replaced: ", domain, " -> ", addrs[0].Domain()).WriteToLog()
 		domain = addrs[0].Domain()
 	default: // Successfully found ip records in static host
-		newError("returning ", len(addrs), " IPs for domain ", domain, " -> ", addrs).WriteToLog()
+		newError("returning ", len(addrs), " IP(s) for domain ", domain, " -> ", addrs).WriteToLog()
 		return toNetIP(addrs)
 	}
 

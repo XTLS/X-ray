@@ -47,6 +47,8 @@ func NewStaticHosts(hosts []*Config_HostMapping, legacy map[string]*net.IPOrDoma
 		id := g.Add(matcher)
 		ips := make([]net.Address, 0, len(mapping.Ip)+1)
 		switch {
+		case len(mapping.ProxiedDomain) > 0:
+			ips = append(ips, net.DomainAddress(mapping.ProxiedDomain))
 		case len(mapping.Ip) > 0:
 			for _, ip := range mapping.Ip {
 				addr := net.IPAddress(ip)
@@ -55,10 +57,6 @@ func NewStaticHosts(hosts []*Config_HostMapping, legacy map[string]*net.IPOrDoma
 				}
 				ips = append(ips, addr)
 			}
-
-		case len(mapping.ProxiedDomain) > 0:
-			ips = append(ips, net.DomainAddress(mapping.ProxiedDomain))
-
 		default:
 			return nil, newError("neither IP address nor proxied domain specified for domain: ", mapping.Domain).AtWarning()
 		}
@@ -92,6 +90,7 @@ func (h *StaticHosts) lookup(domain string, option dns.IPOption, maxDepth int) [
 	case len(addrs) == 0: // Not recorded in static hosts, return nil
 		return nil
 	case len(addrs) == 1 && addrs[0].Family().IsDomain(): // Try to unwrap domain
+		newError("found replaced domain: ", domain, " -> ", addrs[0].Domain(), ". Try to unwrap it").AtDebug().WriteToLog()
 		if maxDepth > 0 {
 			unwrapped := h.lookup(addrs[0].Domain(), option, maxDepth-1)
 			if unwrapped != nil {

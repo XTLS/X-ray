@@ -456,8 +456,7 @@ type Config_HostMapping struct {
 	Domain string             `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
 	Ip     [][]byte           `protobuf:"bytes,3,rep,name=ip,proto3" json:"ip,omitempty"`
 	// ProxiedDomain indicates the mapped domain has the same IP address on this
-	// domain. Xray will use this domain for IP queries. This field is only
-	// effective if ip is empty.
+	// domain. Xray will use this domain for IP queries.
 	ProxiedDomain string `protobuf:"bytes,4,opt,name=proxied_domain,json=proxiedDomain,proto3" json:"proxied_domain,omitempty"`
 }
 

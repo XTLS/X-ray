@@ -67,8 +67,7 @@ message Config {
     repeated bytes ip = 3;
 
     // ProxiedDomain indicates the mapped domain has the same IP address on this
-    // domain. Xray will use this domain for IP queries. This field is only
-    // effective if ip is empty.
+    // domain. Xray will use this domain for IP queries.
     string proxied_domain = 4;
   }
 
