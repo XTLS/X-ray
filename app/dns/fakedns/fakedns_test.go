@@ -108,10 +108,10 @@ func TestFakeDnsHolderCreateMappingAndRollOver(t *testing.T) {
 
 func TestFakeDNSMulti(t *testing.T) {
 	fakeMulti, err := NewFakeDNSHolderMulti(&FakeDnsPoolMulti{
-		Pools: []*FakeDnsPool{&FakeDnsPool{
+		Pools: []*FakeDnsPool{{
 			IpPool:  "240.0.0.0/12",
 			LruSize: 256,
-		}, &FakeDnsPool{
+		}, {
 			IpPool:  "fddd:c5b4:ff5f:f4f0::/64",
 			LruSize: 256,
 		}},

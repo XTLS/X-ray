@@ -58,9 +58,9 @@ func (f fakeDNSSniffResult) Domain() string {
 	return f.domainName
 }
 
-type fakeDnsExtraOpts int
+type fakeDNSExtraOpts int
 
-const ipAddressInRange fakeDnsExtraOpts = 1
+const ipAddressInRange fakeDNSExtraOpts = 1
 
 type ipAddressInRangeOpt struct {
 	addressInRange *bool
@@ -105,10 +105,9 @@ func newFakeDNSThenOthers(ctx context.Context, fakeDNSSniffer protocolSnifferWit
 						}
 					}
 					return nil, common.ErrNoClue
-				} else {
-					newError("ip address not in fake dns range, return as is").AtDebug().WriteToLog()
-					return nil, common.ErrNoClue
 				}
+				newError("ip address not in fake dns range, return as is").AtDebug().WriteToLog()
+				return nil, common.ErrNoClue
 			} else {
 				newError("fake dns sniffer did not set address in range option, assume false.").AtWarning().WriteToLog()
 				return nil, common.ErrNoClue
