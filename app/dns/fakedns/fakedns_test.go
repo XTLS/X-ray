@@ -117,6 +117,7 @@ func TestFakeDNSMulti(t *testing.T) {
 		}},
 	},
 	)
+	common.Must(err)
 
 	err = fakeMulti.Start()
 

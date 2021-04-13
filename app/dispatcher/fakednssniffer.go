@@ -72,10 +72,7 @@ type DNSThenOthersSniffResult struct {
 }
 
 func (f DNSThenOthersSniffResult) IsProtoSubsetOf(protocolName string) bool {
-	if strings.HasPrefix(protocolName, f.protocolOriginalName) {
-		return true
-	}
-	return false
+	return strings.HasPrefix(protocolName, f.protocolOriginalName)
 }
 
 func (DNSThenOthersSniffResult) Protocol() string {
@@ -86,7 +83,10 @@ func (f DNSThenOthersSniffResult) Domain() string {
 	return f.domainName
 }
 
-func newFakeDNSThenOthers(ctx context.Context, fakeDNSSniffer protocolSnifferWithMetadata, others []protocolSnifferWithMetadata) (protocolSnifferWithMetadata, error) {
+func newFakeDNSThenOthers(ctx context.Context, fakeDNSSniffer protocolSnifferWithMetadata, others []protocolSnifferWithMetadata) (
+	protocolSnifferWithMetadata, error) { // nolint: unparam
+	// ctx may be used in the future
+	_ = ctx
 	return protocolSnifferWithMetadata{
 		protocolSniffer: func(ctx context.Context, bytes []byte) (SniffResult, error) {
 			ipAddressInRangeValue := &ipAddressInRangeOpt{}
@@ -96,7 +96,7 @@ func newFakeDNSThenOthers(ctx context.Context, fakeDNSSniffer protocolSnifferWit
 				return result, nil
 			}
 			if ipAddressInRangeValue.addressInRange != nil {
-				if *ipAddressInRangeValue.addressInRange == true {
+				if *ipAddressInRangeValue.addressInRange {
 					for _, v := range others {
 						if v.metadataSniffer || bytes != nil {
 							if result, err := v.protocolSniffer(ctx, bytes); err == nil {
