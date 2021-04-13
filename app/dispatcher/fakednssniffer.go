@@ -108,10 +108,9 @@ func newFakeDNSThenOthers(ctx context.Context, fakeDNSSniffer protocolSnifferWit
 				}
 				newError("ip address not in fake dns range, return as is").AtDebug().WriteToLog()
 				return nil, common.ErrNoClue
-			} else {
-				newError("fake dns sniffer did not set address in range option, assume false.").AtWarning().WriteToLog()
-				return nil, common.ErrNoClue
 			}
+			newError("fake dns sniffer did not set address in range option, assume false.").AtWarning().WriteToLog()
+			return nil, common.ErrNoClue
 		},
 		metadataSniffer: false,
 	}, nil
