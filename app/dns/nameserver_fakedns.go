@@ -42,5 +42,8 @@ func (f *FakeDNSServer) QueryIP(ctx context.Context, domain string, opt dns.IPOp
 
 	newError(f.Name(), " got answer: ", domain, " -> ", ips).AtInfo().WriteToLog()
 
-	return netIP, nil
+	if len(netIP) > 0 {
+		return netIP, nil
+	}
+	return nil, dns.ErrEmptyResponse
 }
