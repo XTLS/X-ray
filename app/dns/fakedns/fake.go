@@ -56,7 +56,7 @@ func NewFakeDNSHolder() (*Holder, error) {
 	if fkdns, err = NewFakeDNSHolderConfigOnly(nil); err != nil {
 		return nil, newError("Unable to create Fake Dns Engine").Base(err).AtError()
 	}
-	err = fkdns.initialize(dns.FakeIPPool, 65535)
+	err = fkdns.initialize(dns.FakeIPv4Pool, 65535)
 	if err != nil {
 		return nil, err
 	}
