@@ -40,7 +40,10 @@ func (*Holder) Type() interface{} {
 }
 
 func (fkdns *Holder) Start() error {
-	return fkdns.initializeFromConfig()
+	if fkdns.config != nil && fkdns.config.IpPool != "" && fkdns.config.LruSize != 0 {
+		return fkdns.initializeFromConfig()
+	}
+	return nil
 }
 
 func (fkdns *Holder) Close() error {
@@ -185,9 +188,10 @@ func (h *HolderMulti) Type() interface{} {
 
 func (h *HolderMulti) Start() error {
 	for _, v := range h.holders {
-		err := v.Start()
-		if err != nil {
-			return newError("Cannot start all fake dns pools").Base(err)
+		if v.config != nil && v.config.IpPool != "" && v.config.LruSize != 0 {
+			if err := v.Start(); err != nil {
+				return newError("Cannot start all fake dns pools").Base(err)
+			}
 		}
 	}
 	return nil
