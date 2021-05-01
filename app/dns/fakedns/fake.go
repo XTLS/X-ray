@@ -199,8 +199,7 @@ func (h *HolderMulti) Start() error {
 
 func (h *HolderMulti) Close() error {
 	for _, v := range h.holders {
-		err := v.Start()
-		if err != nil {
+		if err := v.Close(); err != nil {
 			return newError("Cannot close all fake dns pools").Base(err)
 		}
 	}
