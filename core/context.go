@@ -43,8 +43,8 @@ func toContext(ctx context.Context, v *Instance) context.Context {
 	return ctx
 }
 
-/* ToBackgroundDetachedContext create a detached context from another context
-   Internal API
+/*ToBackgroundDetachedContext create a detached context from another context
+Internal API
 */
 func ToBackgroundDetachedContext(ctx context.Context) context.Context {
 	instance := MustFromContext(ctx)
