@@ -2,16 +2,17 @@ package dns
 
 import (
 	"context"
-	"github.com/xtls/xray-core/app/router"
-	"github.com/xtls/xray-core/common/errors"
-	"github.com/xtls/xray-core/common/strmatcher"
-	"github.com/xtls/xray-core/core"
-	"github.com/xtls/xray-core/features/routing"
 	"net/url"
+	"strings"
 	"time"
 
+	"github.com/xtls/xray-core/app/router"
+	"github.com/xtls/xray-core/common/errors"
 	"github.com/xtls/xray-core/common/net"
+	"github.com/xtls/xray-core/common/strmatcher"
+	"github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/features/dns"
+	"github.com/xtls/xray-core/features/routing"
 )
 
 // Server is the interface for Name Server.
@@ -49,6 +50,12 @@ func NewServer(dest net.Destination, dispatcher routing.Dispatcher) (Server, err
 			return NewDoHLocalNameServer(u), nil
 		case u.Scheme == "quic+local": // DNS-over-QUIC Local mode
 			return NewQUICNameServer(u)
+		case strings.EqualFold(u.Scheme, "tcp"): // DNS-over-TCP Remote mode
+			return NewTCPNameServer(u, dispatcher)
+		case strings.EqualFold(u.Scheme, "tcp+local"): // DNS-over-TCP Local mode
+			return NewTCPLocalNameServer(u)
+		case strings.EqualFold(u.String(), "fakedns"):
+			return NewFakeDNSServer(), nil
 		}
 	}
 	if dest.Network == net.Network_Unknown {
