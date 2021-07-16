@@ -84,7 +84,7 @@ func baseTCPNameServer(url *url.URL, prefix string) (*TCPNameServer, error) {
 			return nil, err
 		}
 	}
-	dest := net.TCPDestination(net.DomainAddress(url.Hostname()), port)
+	dest := net.TCPDestination(net.ParseAddress(url.Hostname()), port)
 
 	s := &TCPNameServer{
 		destination: dest,
