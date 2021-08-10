@@ -31,8 +31,8 @@ import (
 type TCPNameServer struct {
 	sync.RWMutex
 	name        string
-	destination net.Destination
-	ips         map[string]record
+	destination *net.Destination
+	ips         map[string]*record
 	pub         *pubsub.Service
 	cleanup     *task.Periodic
 	reqID       uint32
@@ -47,7 +47,7 @@ func NewTCPNameServer(url *url.URL, dispatcher routing.Dispatcher) (*TCPNameServ
 	}
 
 	s.dial = func(ctx context.Context) (net.Conn, error) {
-		link, err := dispatcher.Dispatch(ctx, s.destination)
+		link, err := dispatcher.Dispatch(ctx, *s.destination)
 		if err != nil {
 			return nil, err
 		}
@@ -69,7 +69,7 @@ func NewTCPLocalNameServer(url *url.URL) (*TCPNameServer, error) {
 	}
 
 	s.dial = func(ctx context.Context) (net.Conn, error) {
-		return internet.DialSystem(ctx, s.destination, nil)
+		return internet.DialSystem(ctx, *s.destination, nil)
 	}
 
 	return s, nil
@@ -87,8 +87,8 @@ func baseTCPNameServer(url *url.URL, prefix string) (*TCPNameServer, error) {
 	dest := net.TCPDestination(net.ParseAddress(url.Hostname()), port)
 
 	s := &TCPNameServer{
-		destination: dest,
-		ips:         make(map[string]record),
+		destination: &dest,
+		ips:         make(map[string]*record),
 		pub:         pubsub.NewService(),
 		name:        prefix + "//" + dest.NetAddr(),
 	}
@@ -132,7 +132,7 @@ func (s *TCPNameServer) Cleanup() error {
 	}
 
 	if len(s.ips) == 0 {
-		s.ips = make(map[string]record)
+		s.ips = make(map[string]*record)
 	}
 
 	return nil
@@ -142,7 +142,10 @@ func (s *TCPNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 	elapsed := time.Since(req.start)
 
 	s.Lock()
-	rec := s.ips[req.domain]
+	rec, found := s.ips[req.domain]
+	if !found {
+		rec = &record{}
+	}
 	updated := false
 
 	switch req.reqType {
@@ -276,30 +279,30 @@ func (s *TCPNameServer) findIPsForDomain(domain string, option dns_feature.IPOpt
 		return nil, errRecordNotFound
 	}
 
+	var err4 error
+	var err6 error
 	var ips []net.Address
-	var lastErr error
-	if option.IPv4Enable {
-		a, err := record.A.getIPs()
-		if err != nil {
-			lastErr = err
-		}
-		ips = append(ips, a...)
-	}
+	var ip6 []net.Address
 
-	if option.IPv6Enable {
-		aaaa, err := record.AAAA.getIPs()
-		if err != nil {
-			lastErr = err
-		}
-		ips = append(ips, aaaa...)
+	switch {
+	case option.IPv4Enable:
+		ips, err4 = record.A.getIPs()
+		fallthrough
+	case option.IPv6Enable:
+		ip6, err6 = record.AAAA.getIPs()
+		ips = append(ips, ip6...)
 	}
 
 	if len(ips) > 0 {
 		return toNetIP(ips)
 	}
 
-	if lastErr != nil {
-		return nil, lastErr
+	if err4 != nil {
+		return nil, err4
+	}
+
+	if err6 != nil {
+		return nil, err6
 	}
 
 	return nil, dns_feature.ErrEmptyResponse

@@ -33,7 +33,7 @@ import (
 type DoHNameServer struct {
 	dispatcher routing.Dispatcher
 	sync.RWMutex
-	ips        map[string]record
+	ips        map[string]*record
 	pub        *pubsub.Service
 	cleanup    *task.Periodic
 	reqID      uint32
@@ -138,7 +138,7 @@ func NewDoHLocalNameServer(url *url.URL) *DoHNameServer {
 
 func baseDOHNameServer(url *url.URL, prefix string) *DoHNameServer {
 	s := &DoHNameServer{
-		ips:    make(map[string]record),
+		ips:    make(map[string]*record),
 		pub:    pubsub.NewService(),
 		name:   prefix + "//" + url.Host,
 		dohURL: url.String(),
@@ -182,7 +182,7 @@ func (s *DoHNameServer) Cleanup() error {
 	}
 
 	if len(s.ips) == 0 {
-		s.ips = make(map[string]record)
+		s.ips = make(map[string]*record)
 	}
 
 	return nil
@@ -192,7 +192,10 @@ func (s *DoHNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 	elapsed := time.Since(req.start)
 
 	s.Lock()
-	rec := s.ips[req.domain]
+	rec, found := s.ips[req.domain]
+	if !found {
+		rec = &record{}
+	}
 	updated := false
 
 	switch req.reqType {
@@ -202,7 +205,7 @@ func (s *DoHNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 			updated = true
 		}
 	case dnsmessage.TypeAAAA:
-		addr := make([]net.Address, 0)
+		addr := make([]net.Address, 0, len(ipRec.IP))
 		for _, ip := range ipRec.IP {
 			if len(ip.IP()) == net.IPv6len {
 				addr = append(addr, ip)
@@ -328,34 +331,30 @@ func (s *DoHNameServer) findIPsForDomain(domain string, option dns_feature.IPOpt
 		return nil, errRecordNotFound
 	}
 
+	var err4 error
+	var err6 error
 	var ips []net.Address
-	var lastErr error
-	if option.IPv6Enable && record.AAAA != nil && record.AAAA.RCode == dnsmessage.RCodeSuccess {
-		aaaa, err := record.AAAA.getIPs()
-		if err != nil {
-			lastErr = err
-		}
-		ips = append(ips, aaaa...)
-	}
+	var ip6 []net.Address
 
-	if option.IPv4Enable && record.A != nil && record.A.RCode == dnsmessage.RCodeSuccess {
-		a, err := record.A.getIPs()
-		if err != nil {
-			lastErr = err
-		}
-		ips = append(ips, a...)
+	switch {
+	case option.IPv4Enable:
+		ips, err4 = record.A.getIPs()
+		fallthrough
+	case option.IPv6Enable:
+		ip6, err6 = record.AAAA.getIPs()
+		ips = append(ips, ip6...)
 	}
 
 	if len(ips) > 0 {
 		return toNetIP(ips)
 	}
 
-	if lastErr != nil {
-		return nil, lastErr
+	if err4 != nil {
+		return nil, err4
 	}
 
-	if (option.IPv4Enable && record.A != nil) || (option.IPv6Enable && record.AAAA != nil) {
-		return nil, dns_feature.ErrEmptyResponse
+	if err6 != nil {
+		return nil, err6
 	}
 
 	return nil, errRecordNotFound
