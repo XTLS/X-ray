@@ -68,7 +68,7 @@ func NewServer(dest net.Destination, dispatcher routing.Dispatcher) (Server, err
 }
 
 // NewClient creates a DNS client managing a name server with client IP, domain rules and expected IPs.
-func NewClient(ctx context.Context, ns *NameServer, clientIP net.IP, container router.GeoIPMatcherContainer, matcherInfos *[]DomainMatcherInfo, updateDomainRule func(strmatcher.Matcher, int, []DomainMatcherInfo) error) (*Client, error) {
+func NewClient(ctx context.Context, ns *NameServer, clientIP net.IP, container router.GeoIPMatcherContainer, matcherInfos *[]*DomainMatcherInfo, updateDomainRule func(strmatcher.Matcher, int, []*DomainMatcherInfo) error) (*Client, error) {
 	client := &Client{}
 
 	err := core.RequireFeatures(ctx, func(dispatcher routing.Dispatcher) error {
@@ -90,7 +90,7 @@ func NewClient(ctx context.Context, ns *NameServer, clientIP net.IP, container r
 			// https://github.com/v2fly/v2ray-core/issues/529
 			// https://github.com/v2fly/v2ray-core/issues/719
 			for i := 0; i < len(localTLDsAndDotlessDomains); i++ {
-				*matcherInfos = append(*matcherInfos, DomainMatcherInfo{
+				*matcherInfos = append(*matcherInfos, &DomainMatcherInfo{
 					clientIdx:     uint16(0),
 					domainRuleIdx: uint16(0),
 				})

@@ -31,7 +31,7 @@ type DNS struct {
 	hosts           *StaticHosts
 	clients         []*Client
 	domainMatcher   strmatcher.IndexMatcher
-	matcherInfos    []DomainMatcherInfo
+	matcherInfos    []*DomainMatcherInfo
 }
 
 // DomainMatcherInfo contains information attached to index returned by Server.domainMatcher
@@ -91,7 +91,7 @@ func New(ctx context.Context, config *Config) (*DNS, error) {
 	}
 
 	// MatcherInfos is ensured to cover the maximum index domainMatcher could return, where matcher's index starts from 1
-	matcherInfos := make([]DomainMatcherInfo, domainRuleCount+1)
+	matcherInfos := make([]*DomainMatcherInfo, domainRuleCount+1)
 	domainMatcher := &strmatcher.MatcherGroup{}
 	geoipContainer := router.GeoIPMatcherContainer{}
 
@@ -106,9 +106,9 @@ func New(ctx context.Context, config *Config) (*DNS, error) {
 
 	for _, ns := range config.NameServer {
 		clientIdx := len(clients)
-		updateDomain := func(domainRule strmatcher.Matcher, originalRuleIdx int, matcherInfos []DomainMatcherInfo) error {
+		updateDomain := func(domainRule strmatcher.Matcher, originalRuleIdx int, matcherInfos []*DomainMatcherInfo) error {
 			midx := domainMatcher.Add(domainRule)
-			matcherInfos[midx] = DomainMatcherInfo{
+			matcherInfos[midx] = &DomainMatcherInfo{
 				clientIdx:     uint16(clientIdx),
 				domainRuleIdx: uint16(originalRuleIdx),
 			}
