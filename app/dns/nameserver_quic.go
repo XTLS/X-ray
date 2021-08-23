@@ -54,7 +54,7 @@ func NewQUICNameServer(url *url.URL) (*QUICNameServer, error) {
 			return nil, err
 		}
 	}
-	dest := net.UDPDestination(net.DomainAddress(url.Hostname()), port)
+	dest := net.UDPDestination(net.ParseAddress(url.Hostname()), port)
 
 	s := &QUICNameServer{
 		ips:         make(map[string]*record),
