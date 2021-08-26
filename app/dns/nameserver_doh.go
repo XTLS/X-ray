@@ -336,11 +336,11 @@ func (s *DoHNameServer) findIPsForDomain(domain string, option dns_feature.IPOpt
 	var ips []net.Address
 	var ip6 []net.Address
 
-	switch {
-	case option.IPv4Enable:
+	if option.IPv4Enable {
 		ips, err4 = record.A.getIPs()
-		fallthrough
-	case option.IPv6Enable:
+	}
+
+	if option.IPv6Enable {
 		ip6, err6 = record.AAAA.getIPs()
 		ips = append(ips, ip6...)
 	}
