@@ -261,6 +261,10 @@ func (s *QUICNameServer) findIPsForDomain(domain string, option dns_feature.IPOp
 		return nil, err6
 	}
 
+	if (option.IPv4Enable && record.A != nil) || (option.IPv6Enable && record.AAAA != nil) {
+		return nil, dns_feature.ErrEmptyResponse
+	}
+
 	return nil, errRecordNotFound
 }
 
