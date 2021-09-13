@@ -124,13 +124,14 @@ var typeMap = map[router.Domain_Type]dns.DomainMatchingType{
 
 // DNSConfig is a JSON serializable object for dns.Config.
 type DNSConfig struct {
-	Servers         []*NameServerConfig `json:"servers"`
-	Hosts           *HostsWrapper       `json:"hosts"`
-	ClientIP        *Address            `json:"clientIp"`
-	Tag             string              `json:"tag"`
-	QueryStrategy   string              `json:"queryStrategy"`
-	DisableCache    bool                `json:"disableCache"`
-	DisableFallback bool                `json:"disableFallback"`
+	Servers                []*NameServerConfig `json:"servers"`
+	Hosts                  *HostsWrapper       `json:"hosts"`
+	ClientIP               *Address            `json:"clientIp"`
+	Tag                    string              `json:"tag"`
+	QueryStrategy          string              `json:"queryStrategy"`
+	DisableCache           bool                `json:"disableCache"`
+	DisableFallback        bool                `json:"disableFallback"`
+	DisableFallbackIfMatch bool                `json:"disableFallbackIfMatch"`
 }
 
 type HostAddress struct {
@@ -306,9 +307,10 @@ func (m *HostsWrapper) Build() ([]*dns.Config_HostMapping, error) {
 // Build implements Buildable
 func (c *DNSConfig) Build() (*dns.Config, error) {
 	config := &dns.Config{
-		Tag:             c.Tag,
-		DisableCache:    c.DisableCache,
-		DisableFallback: c.DisableFallback,
+		Tag:                    c.Tag,
+		DisableCache:           c.DisableCache,
+		DisableFallback:        c.DisableFallback,
+		DisableFallbackIfMatch: c.DisableFallbackIfMatch,
 	}
 
 	if c.ClientIP != nil {

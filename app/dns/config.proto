@@ -84,4 +84,5 @@ message Config {
   QueryStrategy query_strategy = 9;
 
   bool disableFallback = 10;
+  bool disableFallbackIfMatch = 11;
 }
