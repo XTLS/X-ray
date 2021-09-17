@@ -89,10 +89,10 @@ func dialWebSocket(ctx context.Context, dest net.Destination, streamSettings *in
 	if (protocol == "ws" && dest.Port == 80) || (protocol == "wss" && dest.Port == 443) {
 		host = dest.Address.String()
 	}
-	uri := protocol + "://" + host + wsSettings.GetNormalizedPath()
+	uriBase := protocol + "://" + host + wsSettings.GetNormalizedPath()
 
 	if conns != nil {
-		data := []byte(uri)
+		data := []byte(uriBase)
 		if ed != nil {
 			data = append(data, " "+base64.RawURLEncoding.EncodeToString(ed)...)
 		}
@@ -116,8 +116,13 @@ func dialWebSocket(ctx context.Context, dest net.Destination, streamSettings *in
 	}
 
 	header := wsSettings.GetRequestHeader()
+	uri := uriBase
 	if ed != nil {
-		header.Set("Sec-WebSocket-Protocol", base64.StdEncoding.EncodeToString(ed))
+		if !wsSettings.UsePathEarlyData {
+			header.Set("Sec-WebSocket-Protocol", base64.RawURLEncoding.EncodeToString(ed))
+		} else {
+			uri += base64.RawURLEncoding.EncodeToString(ed)
+		}
 	}
 
 	conn, resp, err := dialer.Dial(uri, header)
@@ -126,7 +131,7 @@ func dialWebSocket(ctx context.Context, dest net.Destination, streamSettings *in
 		if resp != nil {
 			reason = resp.Status
 		}
-		return nil, newError("failed to dial to (", uri, "): ", reason).Base(err)
+		return nil, newError("failed to dial to (", uriBase, "): ", reason).Base(err)
 	}
 
 	return newConnection(conn, conn.RemoteAddr(), nil), nil

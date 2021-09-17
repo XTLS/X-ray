@@ -22,4 +22,6 @@ message Config {
   bool accept_proxy_protocol = 4;
 
   uint32 ed = 5;
+
+  bool use_path_early_data = 6; 
 }

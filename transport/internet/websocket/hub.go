@@ -22,8 +22,9 @@ import (
 )
 
 type requestHandler struct {
-	path string
-	ln   *Listener
+	path             string
+	ln               *Listener
+	UsePathEarlyData bool
 }
 
 var replacer = strings.NewReplacer("+", "-", "/", "_", "=", "")
@@ -38,17 +39,29 @@ var upgrader = &websocket.Upgrader{
 }
 
 func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	if request.URL.Path != h.path {
-		writer.WriteHeader(http.StatusNotFound)
-		return
-	}
-
 	var extraReader io.Reader
 	var responseHeader = http.Header{}
-	if str := request.Header.Get("Sec-WebSocket-Protocol"); str != "" {
-		if ed, err := base64.RawURLEncoding.DecodeString(replacer.Replace(str)); err == nil && len(ed) > 0 {
-			extraReader = bytes.NewReader(ed)
-			responseHeader.Set("Sec-WebSocket-Protocol", str)
+
+	if !h.UsePathEarlyData {
+		if request.URL.Path != h.path {
+			writer.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		if str := request.Header.Get("Sec-WebSocket-Protocol"); str != "" {
+			if ed, err := base64.RawURLEncoding.DecodeString(replacer.Replace(str)); err == nil && len(ed) > 0 {
+				extraReader = bytes.NewReader(ed)
+				responseHeader.Set("Sec-WebSocket-Protocol", str)
+			}
+		}
+	} else {
+		if strings.HasPrefix(request.URL.RequestURI(), h.path) {
+			if ed, err := base64.RawURLEncoding.DecodeString(request.URL.RequestURI()[len(h.path):]); err == nil && len(ed) > 0 {
+				extraReader = bytes.NewReader(ed)
+			}
+		} else {
+			writer.WriteHeader(http.StatusNotFound)
+			return
 		}
 	}
 
@@ -132,8 +145,9 @@ func ListenWS(ctx context.Context, address net.Address, port net.Port, streamSet
 
 	l.server = http.Server{
 		Handler: &requestHandler{
-			path: wsSettings.GetNormalizedPath(),
-			ln:   l,
+			path:             wsSettings.GetNormalizedPath(),
+			ln:               l,
+			UsePathEarlyData: wsSettings.UsePathEarlyData,
 		},
 		ReadHeaderTimeout: time.Second * 4,
 		MaxHeaderBytes:    4096,
