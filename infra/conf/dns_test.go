@@ -73,12 +73,11 @@ func TestDNSConfigParsing(t *testing.T) {
 					"domains": ["domain:example.com"]
 				}],
 				"hosts": {
-					"example.com": "127.0.0.1",
-					"www.v2fly.org": ["1.2.3.4", "5.6.7.8"],
 					"domain:example.com": "google.com",
-					"geosite:test": ["127.0.0.1", "127.0.0.2"],
+					"example.com": "127.0.0.1",
 					"keyword:google": ["8.8.8.8", "8.8.4.4"],
-					"regexp:.*\\.com": "8.8.4.4"
+					"regexp:.*\\.com": "8.8.4.4",
+					"www.example.org": ["127.0.0.1", "127.0.0.2"]
 				},
 				"clientIp": "10.0.0.1",
 				"queryStrategy": "UseIPv4",
@@ -98,7 +97,6 @@ func TestDNSConfigParsing(t *testing.T) {
 							Network: net.Network_UDP,
 							Port:    5353,
 						},
-						ClientIp:     []byte{10, 0, 0, 1},
 						SkipFallback: true,
 						PrioritizedDomain: []*dns.NameServer_PriorityDomain{
 							{
@@ -126,11 +124,6 @@ func TestDNSConfigParsing(t *testing.T) {
 						Ip:     [][]byte{{127, 0, 0, 1}},
 					},
 					{
-						Type:   dns.DomainMatchingType_Full,
-						Domain: "example.com",
-						Ip:     [][]byte{{127, 0, 0, 1}, {127, 0, 0, 2}},
-					},
-					{
 						Type:   dns.DomainMatchingType_Keyword,
 						Domain: "google",
 						Ip:     [][]byte{{8, 8, 8, 8}, {8, 8, 4, 4}},
@@ -142,13 +135,8 @@ func TestDNSConfigParsing(t *testing.T) {
 					},
 					{
 						Type:   dns.DomainMatchingType_Full,
-						Domain: "example.org",
-						Ip:     [][]byte{{127, 0, 0, 1}},
-					},
-					{
-						Type:   dns.DomainMatchingType_Full,
 						Domain: "www.example.org",
-						Ip:     [][]byte{{1, 2, 3, 4}, {5, 6, 7, 8}},
+						Ip:     [][]byte{{127, 0, 0, 1}, {127, 0, 0, 2}},
 					},
 				},
 				ClientIp:        []byte{10, 0, 0, 1},

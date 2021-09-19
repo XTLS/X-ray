@@ -20,58 +20,41 @@ func (*Client) Start() error { return nil }
 func (*Client) Close() error { return nil }
 
 // LookupIP implements Client.
-func (*Client) LookupIP(host string) ([]net.IP, error) {
+func (*Client) LookupIP(host string, option dns.IPOption) ([]net.IP, error) {
 	ips, err := net.LookupIP(host)
 	if err != nil {
 		return nil, err
 	}
 	parsedIPs := make([]net.IP, 0, len(ips))
+	ipv4 := make([]net.IP, 0, len(ips))
+	ipv6 := make([]net.IP, 0, len(ips))
 	for _, ip := range ips {
 		parsed := net.IPAddress(ip)
 		if parsed != nil {
 			parsedIPs = append(parsedIPs, parsed.IP())
 		}
-	}
-	if len(parsedIPs) == 0 {
-		return nil, dns.ErrEmptyResponse
-	}
-	return parsedIPs, nil
-}
-
-// LookupIPv4 implements IPv4Lookup.
-func (c *Client) LookupIPv4(host string) ([]net.IP, error) {
-	ips, err := c.LookupIP(host)
-	if err != nil {
-		return nil, err
-	}
-	ipv4 := make([]net.IP, 0, len(ips))
-	for _, ip := range ips {
 		if len(ip) == net.IPv4len {
 			ipv4 = append(ipv4, ip)
 		}
-	}
-	if len(ipv4) == 0 {
-		return nil, dns.ErrEmptyResponse
-	}
-	return ipv4, nil
-}
-
-// LookupIPv6 implements IPv6Lookup.
-func (c *Client) LookupIPv6(host string) ([]net.IP, error) {
-	ips, err := c.LookupIP(host)
-	if err != nil {
-		return nil, err
-	}
-	ipv6 := make([]net.IP, 0, len(ips))
-	for _, ip := range ips {
 		if len(ip) == net.IPv6len {
 			ipv6 = append(ipv6, ip)
 		}
 	}
-	if len(ipv6) == 0 {
-		return nil, dns.ErrEmptyResponse
+	switch {
+	case option.IPv4Enable && option.IPv6Enable:
+		if len(parsedIPs) > 0 {
+			return parsedIPs, nil
+		}
+	case option.IPv4Enable:
+		if len(ipv4) > 0 {
+			return ipv4, nil
+		}
+	case option.IPv6Enable:
+		if len(ipv6) > 0 {
+			return ipv6, nil
+		}
 	}
-	return ipv6, nil
+	return nil, dns.ErrEmptyResponse
 }
 
 // New create a new dns.Client that queries localhost for DNS.
