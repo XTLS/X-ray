@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/xtls/xray-core/app/dispatcher"
 	"github.com/xtls/xray-core/app/proxyman"
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/buf"
@@ -284,7 +285,37 @@ func (w *udpWorker) callback(b *buf.Buffer, source net.Destination, originalDest
 	id := connID{
 		src: source,
 	}
+	ctx := w.ctx
+	sid := session.NewID()
+	ctx = session.ContextWithID(ctx, sid)
 	if originalDest.IsValid() {
+		ctx = session.ContextWithOutbound(ctx, &session.Outbound{
+			Target: originalDest,
+		})
+	}
+	ctx = session.ContextWithInbound(ctx, &session.Inbound{
+		Source:  source,
+		Gateway: net.UDPDestination(w.address, w.port),
+		Tag:     w.tag,
+	})
+	content := new(session.Content)
+	if w.sniffingConfig != nil {
+		content.SniffingRequest.Enabled = w.sniffingConfig.Enabled
+		content.SniffingRequest.OverrideDestinationForProtocol = w.sniffingConfig.DestinationOverride
+		content.SniffingRequest.MetadataOnly = w.sniffingConfig.MetadataOnly
+	}
+	ctx = session.ContextWithContent(ctx, content)
+	
+	if originalDest.IsValid() {
+		if w.sniffingConfig.Enabled {
+			sniffer := dispatcher.NewSniffer(ctx)
+			metaresult, metadataErr := sniffer.SniffMetadata(ctx)
+			if metadataErr == nil {
+				domain := metaresult.Domain()
+				newError("sniffed domain for XUDP: ", domain).WriteToLog(session.ExportIDToError(ctx))
+				originalDest.Address = net.ParseAddress(domain)
+			}
+		}
 		if !w.cone {
 			id.dest = originalDest
 		}
@@ -292,34 +323,13 @@ func (w *udpWorker) callback(b *buf.Buffer, source net.Destination, originalDest
 	}
 	conn, existing := w.getConnection(id)
 
-	// payload will be discarded in pipe is full.
+	// payload will be discarded if pipe is full.
 	conn.writer.WriteMultiBuffer(buf.MultiBuffer{b})
 
 	if !existing {
 		common.Must(w.checker.Start())
 
 		go func() {
-			ctx := w.ctx
-			sid := session.NewID()
-			ctx = session.ContextWithID(ctx, sid)
-
-			if originalDest.IsValid() {
-				ctx = session.ContextWithOutbound(ctx, &session.Outbound{
-					Target: originalDest,
-				})
-			}
-			ctx = session.ContextWithInbound(ctx, &session.Inbound{
-				Source:  source,
-				Gateway: net.UDPDestination(w.address, w.port),
-				Tag:     w.tag,
-			})
-			content := new(session.Content)
-			if w.sniffingConfig != nil {
-				content.SniffingRequest.Enabled = w.sniffingConfig.Enabled
-				content.SniffingRequest.OverrideDestinationForProtocol = w.sniffingConfig.DestinationOverride
-				content.SniffingRequest.MetadataOnly = w.sniffingConfig.MetadataOnly
-			}
-			ctx = session.ContextWithContent(ctx, content)
 			if err := w.proxy.Process(ctx, net.Network_UDP, conn, w.dispatcher); err != nil {
 				newError("connection ends").Base(err).WriteToLog(session.ExportIDToError(ctx))
 			}
