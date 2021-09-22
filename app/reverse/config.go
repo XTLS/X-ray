@@ -12,3 +12,19 @@ func (c *Control) FillInRandom() {
 	c.Random = make([]byte, randomLength)
 	io.ReadFull(rand.Reader, c.Random)
 }
+
+func (x *BridgeConfig) Start() error {
+	panic("implement me")
+}
+
+func (x *BridgeConfig) Close() error {
+	panic("implement me")
+}
+
+func (x *PortalConfig) Start() error {
+	panic("implement me")
+}
+
+func (x *PortalConfig) Close() error {
+	panic("implement me")
+}

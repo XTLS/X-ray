@@ -6,12 +6,11 @@ import (
 	"context"
 	"time"
 
-	"google.golang.org/grpc"
-
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/features/routing"
 	"github.com/xtls/xray-core/features/stats"
+	"google.golang.org/grpc"
 )
 
 // routingServer is an implementation of RoutingService.

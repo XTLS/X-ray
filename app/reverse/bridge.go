@@ -84,6 +84,14 @@ func (b *Bridge) monitor() error {
 	return nil
 }
 
+func (b *Bridge) GetTag() string {
+	return b.tag
+}
+
+func (b *Bridge) GetDomain() string {
+	return b.domain
+}
+
 func (b *Bridge) Start() error {
 	return b.monitorTask.Start()
 }

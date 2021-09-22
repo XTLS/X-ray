@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package xray.app.reverse.command;
+option csharp_namespace = "Xray.App.Reverse.Command";
+option go_package = "github.com/xtls/xray-core/app/reverse/command";
+option java_package = "com.xray.app.reverse.command";
+option java_multiple_files = true;
+
+import "app/reverse/config.proto";
+
+message AddBridgeRequest {
+  xray.app.reverse.BridgeConfig config = 1;
+}
+message AddBridgeResponse {}
+
+message RemoveBridgeRequest {
+  string tag = 1;
+}
+message RemoveBridgeResponse {}
+
+message GetBridgesRequest{}
+
+message GetBridgesResponse{
+  repeated xray.app.reverse.BridgeConfig configs = 1;
+}
+
+message GetBridgeRequest{
+  string tag = 1;
+}
+
+message GetBridgeResponse{
+  xray.app.reverse.BridgeConfig config = 1;
+}
+
+message AddPortalRequest {
+  xray.app.reverse.PortalConfig config = 1;
+}
+message AddPortalResponse {}
+
+message RemovePortalRequest {
+  string tag = 1;
+}
+message RemovePortalResponse {}
+
+message GetPortalsRequest{}
+
+message GetPortalsResponse{
+  repeated xray.app.reverse.PortalConfig configs = 1;
+}
+
+message GetPortalRequest{
+  string tag = 1;
+}
+
+message GetPortalResponse{
+  xray.app.reverse.PortalConfig config = 1;
+}
+
+service ReverseService {
+
+  rpc AddBridge(AddBridgeRequest) returns (AddBridgeResponse){}
+
+  rpc RemoveBridge(RemoveBridgeRequest) returns (RemoveBridgeResponse){}
+
+  rpc GetBridges(GetBridgesRequest) returns (GetBridgesResponse){}
+
+  rpc GetBridge(GetBridgeRequest) returns (GetBridgeResponse){}
+
+  rpc AddPortal(AddPortalRequest) returns (AddPortalResponse){}
+
+  rpc RemovePortal(RemovePortalRequest) returns (RemovePortalResponse){}
+
+  rpc GetPortals(GetPortalsRequest) returns (GetPortalsResponse){}
+
+  rpc GetPortal(GetPortalRequest) returns (GetPortalResponse){}
+}
+
+message Config {}

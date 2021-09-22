@@ -214,7 +214,7 @@ func (b *Buffer) WriteString(s string) (int, error) {
 
 // Read implements io.Reader.Read().
 func (b *Buffer) Read(data []byte) (int, error) {
-	if b.Len() == 0 {
+	if b.Len() == 0 || b.start > b.end {
 		return 0, io.EOF
 	}
 	nBytes := copy(data, b.v[b.start:b.end])
@@ -236,7 +236,7 @@ func (b *Buffer) ReadFrom(reader io.Reader) (int64, error) {
 // ReadFullFrom reads exact size of bytes from given reader, or until error occurs.
 func (b *Buffer) ReadFullFrom(reader io.Reader, size int32) (int64, error) {
 	end := b.end + size
-	if end > int32(len(b.v)) {
+	if end > int32(len(b.v)) || b.end > end {
 		v := end
 		return 0, newError("out of bound: ", v)
 	}

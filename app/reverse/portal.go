@@ -51,6 +51,14 @@ func NewPortal(config *PortalConfig, ohm outbound.Manager) (*Portal, error) {
 	}, nil
 }
 
+func (p *Portal) GetTag() string {
+	return p.tag
+}
+
+func (p *Portal) GetDomain() string {
+	return p.domain
+}
+
 func (p *Portal) Start() error {
 	return p.ohm.AddHandler(context.Background(), &Outbound{
 		portal: p,
