@@ -2,7 +2,10 @@ package internet
 
 import (
 	"context"
+	"os"
 	"runtime"
+	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/pires/go-proxyproto"
@@ -41,11 +44,10 @@ func getControlFunc(ctx context.Context, sockopt *SocketConfig, controllers []co
 	}
 }
 
-func (dl *DefaultListener) Listen(ctx context.Context, addr net.Addr, sockopt *SocketConfig) (net.Listener, error) {
+func (dl *DefaultListener) Listen(ctx context.Context, addr net.Addr, sockopt *SocketConfig) (l net.Listener, err error) {
 	var lc net.ListenConfig
-	var l net.Listener
-	var err error
 	var network, address string
+
 	switch addr := addr.(type) {
 	case *net.TCPAddr:
 		network = addr.Network()
@@ -55,6 +57,24 @@ func (dl *DefaultListener) Listen(ctx context.Context, addr net.Addr, sockopt *S
 		lc.Control = nil
 		network = addr.Network()
 		address = addr.Name
+
+		if s := strings.Split(address, ","); len(s) == 2 {
+			address = s[0]
+			perm, perr := strconv.ParseUint(s[1], 8, 32)
+			if perr != nil {
+				return nil, newError("failed to parse permission: " + s[1]).Base(perr)
+			}
+
+			defer func(file string, permission os.FileMode) {
+				if err == nil {
+					cerr := os.Chmod(address, permission)
+					if cerr != nil {
+						err = newError("failed to set permission for " + file).Base(cerr)
+					}
+				}
+			}(address, os.FileMode(perm))
+		}
+
 		if (runtime.GOOS == "linux" || runtime.GOOS == "android") && address[0] == '@' {
 			// linux abstract unix domain socket is lockfree
 			if len(address) > 1 && address[1] == '@' {
