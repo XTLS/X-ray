@@ -1,0 +1,33 @@
+name: Auto Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v2
+    - name: Initial Building Dependencies
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo -E apt update -y
+        sudo -E apt install -y coreutils curl jq openssl tar zip
+    - name: Initial Golang Toolchain
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.16
+    - name: Build Binaries
+      env:
+        RELEASE_TAG: ${{ github.ref }}
+      run: ${GITHUB_WORKSPACE}/.github/build/autorelease.sh
+    - name: Upload Binaries to Release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ github.token }}
+        file: build/*
+        tag: ${{ github.ref }}
+        file_glob: true
