@@ -171,6 +171,13 @@ func (s *DNS) LookupIP(domain string, option dns.IPOption) ([]net.IP, error) {
 		return nil, newError("empty domain name")
 	}
 
+	option.IPv4Enable = option.IPv4Enable && s.ipOption.IPv4Enable
+	option.IPv6Enable = option.IPv6Enable && s.ipOption.IPv6Enable
+
+	if !option.IPv4Enable && !option.IPv6Enable {
+		return nil, dns.ErrEmptyResponse
+	}
+
 	// Normalize the FQDN form query
 	if strings.HasSuffix(domain, ".") {
 		domain = domain[:len(domain)-1]
