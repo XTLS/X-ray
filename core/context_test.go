@@ -5,9 +5,10 @@ import (
 	"testing"
 
 	. "github.com/xtls/xray-core/core"
+	_ "unsafe"
 )
 
-func TestContextPanic(t *testing.T) {
+func TestFromContextPanic(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r == nil {
