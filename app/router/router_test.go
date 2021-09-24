@@ -2,6 +2,7 @@ package router_test
 
 import (
 	"context"
+	"github.com/xtls/xray-core/features/dns"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -10,7 +11,6 @@ import (
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/net"
 	"github.com/xtls/xray-core/common/session"
-	"github.com/xtls/xray-core/features/dns"
 	"github.com/xtls/xray-core/features/outbound"
 	routing_session "github.com/xtls/xray-core/features/routing/session"
 	"github.com/xtls/xray-core/testing/mocks"

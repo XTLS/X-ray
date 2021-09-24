@@ -12,6 +12,8 @@ import "app/router/config.proto";
 
 message NameServer {
   xray.common.net.Endpoint address = 1;
+  bytes client_ip = 5;
+  bool skipFallback = 6;
 
   message PriorityDomain {
     DomainMatchingType type = 1;
@@ -33,6 +35,12 @@ enum DomainMatchingType {
   Subdomain = 1;
   Keyword = 2;
   Regex = 3;
+}
+
+enum QueryStrategy {
+  USE_IP = 0;
+  USE_IP4 = 1;
+  USE_IP6 = 2;
 }
 
 message Config {
@@ -59,8 +67,7 @@ message Config {
     repeated bytes ip = 3;
 
     // ProxiedDomain indicates the mapped domain has the same IP address on this
-    // domain. Xray will use this domain for IP queries. This field is only
-    // effective if ip is empty.
+    // domain. Xray will use this domain for IP queries.
     string proxied_domain = 4;
   }
 
@@ -70,4 +77,12 @@ message Config {
   string tag = 6;
 
   reserved 7;
+
+  // DisableCache disables DNS cache
+  bool disableCache = 8;
+
+  QueryStrategy query_strategy = 9;
+
+  bool disableFallback = 10;
+  bool disableFallbackIfMatch = 11;
 }
