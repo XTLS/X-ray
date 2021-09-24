@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"go/build"
 	"io/ioutil"
@@ -10,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 )
+
+var directory = flag.String("pwd", "", "Working directory of Xray vformat.")
 
 // envFile returns the name of the Go environment configuration file.
 // Copy from https://github.com/golang/go/blob/c4f2a9788a7be04daf931ac54382fbe2cb754938/src/cmd/go/internal/cfg/cfg.go#L150-L166
@@ -106,12 +109,22 @@ func RunMany(binary string, args, files []string) {
 }
 
 func main() {
-	pwd, err := os.Getwd()
-	if err != nil {
-		fmt.Println("Can not get current working directory.")
-		os.Exit(1)
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage of vformat:\n")
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+
+	if !filepath.IsAbs(*directory) {
+		pwd, wdErr := os.Getwd()
+		if wdErr != nil {
+			fmt.Println("Can not get current working directory.")
+			os.Exit(1)
+		}
+		*directory = filepath.Join(pwd, *directory)
 	}
 
+	pwd := *directory
 	GOBIN := GetGOBIN()
 	binPath := os.Getenv("PATH")
 	pathSlice := []string{pwd, GOBIN, binPath}
@@ -140,7 +153,7 @@ func main() {
 	}
 
 	rawFilesSlice := make([]string, 0)
-	walkErr := filepath.Walk("./", func(path string, info os.FileInfo, err error) error {
+	walkErr := filepath.Walk(pwd, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Println(err)
 			return err
