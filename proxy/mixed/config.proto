@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package xray.proxy.mixed;
+option csharp_namespace = "Xray.Proxy.Mixed";
+option go_package = "github.com/xtls/xray-core/proxy/mixed";
+option java_package = "com.xray.proxy.mixed";
+option java_multiple_files = true;
+
+import "proxy/socks/config.proto";
+import "proxy/http/config.proto";
+
+message Config {
+    xray.proxy.socks.ServerConfig socks_config = 1;
+    xray.proxy.http.ServerConfig http_config = 2;
+}
