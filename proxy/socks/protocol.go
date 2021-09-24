@@ -32,6 +32,11 @@ const (
 	statusCmdNotSupport = 0x07
 )
 
+const (
+	Socks5Version = socks5Version
+	Socks4Version = socks4Version
+)
+
 var addrParser = protocol.NewAddressParser(
 	protocol.AddressFamilyByte(0x01, net.AddressFamilyIPv4),
 	protocol.AddressFamilyByte(0x04, net.AddressFamilyIPv6),

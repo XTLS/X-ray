@@ -26,6 +26,7 @@ var (
 		"vmess":         func() interface{} { return new(VMessInboundConfig) },
 		"trojan":        func() interface{} { return new(TrojanServerConfig) },
 		"mtproto":       func() interface{} { return new(MTProtoServerConfig) },
+		"mixed":         func() interface{} { return new(MixedServerConfig) },
 	}, "protocol", "settings")
 
 	outboundConfigLoader = NewJSONConfigLoader(ConfigCreatorCache{

@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package xray.proxy.mixed;
+option csharp_namespace = "Xray.Proxy.Mixed";
+option go_package = "github.com/xtls/xray-core/proxy/mixed";
+option java_package = "com.xray.proxy.mixed";
+option java_multiple_files = true;
+
+import "common/net/address.proto";
+import "common/protocol/server_spec.proto";
+
+// Account represents a Socks/HTTP account.
+message Account {
+  string username = 1;
+  string password = 2;
+}
+
+// ServerConfig is the protobuf config for Mixed server.
+message ServerConfig {
+  map<string, string> accounts = 1;
+  uint32 timeout = 2 [deprecated = true];
+  uint32 user_level = 3;
+  // socks
+  bool socks_udp_enabled = 4;
+  xray.common.net.IPOrDomain socks_address = 5;
+  // http
+  bool http_allow_transparent = 6;
+}
