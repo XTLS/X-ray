@@ -114,6 +114,12 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 
 	if h.senderSettings != nil && h.senderSettings.MultiplexSettings != nil {
 		if config := h.senderSettings.MultiplexSettings; config.Enabled {
+			// MaxReuseTimes use 65535 as default, and it also means the upper limit of MaxReuseTimes
+			// Because in mux cool spec, connection ID is 2 bytes
+			MaxReuseTimes := uint32(65535)
+			if config.MaxReuseTimes != 0 && config.MaxReuseTimes < 65535 {
+				MaxReuseTimes = uint32(config.MaxReuseTimes)
+			}
 			if config.Concurrency < 0 {
 				h.mux = &mux.ClientManager{Enabled: false}
 			}
@@ -129,7 +135,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 							Dialer: h,
 							Strategy: mux.ClientStrategy{
 								MaxConcurrency: uint32(config.Concurrency),
-								MaxConnection:  128,
+								MaxReuseTimes:  MaxReuseTimes,
 							},
 						},
 					},
@@ -150,7 +156,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 							Dialer: h,
 							Strategy: mux.ClientStrategy{
 								MaxConcurrency: uint32(config.XudpConcurrency),
-								MaxConnection:  128,
+								MaxReuseTimes:  128,
 							},
 						},
 					},

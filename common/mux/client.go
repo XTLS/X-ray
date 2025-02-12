@@ -166,7 +166,7 @@ func (f *DialingWorkerFactory) Create() (*ClientWorker, error) {
 
 type ClientStrategy struct {
 	MaxConcurrency uint32
-	MaxConnection  uint32
+	MaxReuseTimes  uint32
 }
 
 type ClientWorker struct {
@@ -174,6 +174,7 @@ type ClientWorker struct {
 	link           transport.Link
 	done           *done.Instance
 	strategy       ClientStrategy
+	timeCretaed    time.Time
 }
 
 var (
@@ -188,6 +189,7 @@ func NewClientWorker(stream transport.Link, s ClientStrategy) (*ClientWorker, er
 		link:           stream,
 		done:           done.New(),
 		strategy:       s,
+		timeCretaed:    time.Now(),
 	}
 
 	go c.fetchOutput()
@@ -270,7 +272,7 @@ func fetchInput(ctx context.Context, s *Session, output buf.Writer) {
 
 func (m *ClientWorker) IsClosing() bool {
 	sm := m.sessionManager
-	if m.strategy.MaxConnection > 0 && sm.Count() >= int(m.strategy.MaxConnection) {
+	if m.strategy.MaxReuseTimes > 0 && sm.Count() >= int(m.strategy.MaxReuseTimes) {
 		return true
 	}
 	return false
@@ -298,6 +300,8 @@ func (m *ClientWorker) Dispatch(ctx context.Context, link *transport.Link) bool 
 	if s == nil {
 		return false
 	}
+	errors.LogInfo(ctx, "allocated mux.cool subConnection ID: ", s.ID, "/", m.strategy.MaxReuseTimes)
+	errors.LogInfo(ctx, "living subConnections:", m.ActiveConnections(), "/", m.strategy.MaxConcurrency, ", this mux connection has been created for ", time.Since(m.timeCretaed).Truncate(time.Second))
 	s.input = link.Reader
 	s.output = link.Writer
 	go fetchInput(ctx, s, m.link.Writer)

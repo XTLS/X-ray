@@ -95,4 +95,6 @@ message MultiplexingConfig {
   int32 xudpConcurrency = 3;
   // "reject" (default), "allow" or "skip".
   string xudpProxyUDP443 = 4;
+  // MaxReuseTimes for an connection
+  int32 maxReuseTimes = 5;
 }

@@ -58,7 +58,7 @@ func TestClientWorkerClose(t *testing.T) {
 		Writer: w1,
 	}, mux.ClientStrategy{
 		MaxConcurrency: 4,
-		MaxConnection:  4,
+		MaxReuseTimes:  4,
 	})
 	common.Must(err)
 
@@ -68,7 +68,7 @@ func TestClientWorkerClose(t *testing.T) {
 		Writer: w2,
 	}, mux.ClientStrategy{
 		MaxConcurrency: 4,
-		MaxConnection:  4,
+		MaxReuseTimes:  4,
 	})
 	common.Must(err)
 
