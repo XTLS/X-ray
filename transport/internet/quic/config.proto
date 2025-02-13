@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package xray.transport.internet.quic;
+option csharp_namespace = "Xray.Transport.Internet.Quic";
+option go_package = "github.com/xtls/xray-core/transport/internet/quic";
+option java_package = "com.xray.transport.internet.quic";
+option java_multiple_files = true;
+
+message Config {
+//   string key = 1;
+//   xray.common.protocol.SecurityConfig security = 2;
+//   xray.common.serial.TypedMessage header = 3;
+     bool fec = 4;
+}

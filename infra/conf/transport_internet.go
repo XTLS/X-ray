@@ -18,6 +18,7 @@ import (
 	"github.com/xtls/xray-core/transport/internet"
 	"github.com/xtls/xray-core/transport/internet/httpupgrade"
 	"github.com/xtls/xray-core/transport/internet/kcp"
+	"github.com/xtls/xray-core/transport/internet/quic"
 	"github.com/xtls/xray-core/transport/internet/reality"
 	"github.com/xtls/xray-core/transport/internet/splithttp"
 	"github.com/xtls/xray-core/transport/internet/tcp"
@@ -329,6 +330,22 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 		}
 	}
 
+	return config, nil
+}
+
+type QUICConfig struct {
+	// Header   json.RawMessage `json:"header"`
+	// Security string          `json:"security"`
+	// Key      string          `json:"key"`
+
+	Fec bool `json:"fec"`
+}
+
+// Build implements Buildable.
+func (c *QUICConfig) Build() (proto.Message, error) {
+	config := &quic.Config{
+		Fec: c.Fec,
+	}
 	return config, nil
 }
 
@@ -679,8 +696,8 @@ func (p TransportProtocol) Build() (string, error) {
 		return "httpupgrade", nil
 	case "h2", "h3", "http":
 		return "", errors.PrintRemovedFeatureError("HTTP transport (without header padding, etc.)", "XHTTP stream-one H2 & H3")
-	case "quic":
-		return "", errors.PrintRemovedFeatureError("QUIC transport (without web service, etc.)", "XHTTP stream-one H3")
+	case "quic", "datagram":
+		return "quic", nil
 	default:
 		return "", errors.New("Config: unknown transport protocol: ", p)
 	}
@@ -813,6 +830,7 @@ type StreamConfig struct {
 	XHTTPSettings       *SplitHTTPConfig   `json:"xhttpSettings"`
 	SplitHTTPSettings   *SplitHTTPConfig   `json:"splithttpSettings"`
 	KCPSettings         *KCPConfig         `json:"kcpSettings"`
+	QUICSettings        *QUICConfig        `json:"quicSettings"`
 	GRPCSettings        *GRPCConfig        `json:"grpcSettings"`
 	WSSettings          *WebSocketConfig   `json:"wsSettings"`
 	HTTPUPGRADESettings *HttpUpgradeConfig `json:"httpupgradeSettings"`
@@ -902,6 +920,16 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
 			ProtocolName: "mkcp",
 			Settings:     serial.ToTypedMessage(ts),
+		})
+	}
+	if c.QUICSettings != nil {
+		qs, err := c.QUICSettings.Build()
+		if err != nil {
+			return nil, errors.New("Failed to build QUIC config").Base(err)
+		}
+		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
+			ProtocolName: "quic",
+			Settings:     serial.ToTypedMessage(qs),
 		})
 	}
 	if c.GRPCSettings != nil {
