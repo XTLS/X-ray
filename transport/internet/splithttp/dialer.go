@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
+	"slices"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -93,6 +94,9 @@ func decideHTTPVersion(tlsConfig *tls.Config, realityConfig *reality.Config) str
 		return "1.1"
 	}
 	if len(tlsConfig.NextProtocol) != 1 {
+		if slices.Contains(tlsConfig.NextProtocol, "h3") && slices.Contains(tlsConfig.NextProtocol, "h2") {
+			return "3+2"
+		}
 		return "2"
 	}
 	if tlsConfig.NextProtocol[0] == "http/1.1" {
@@ -101,6 +105,7 @@ func decideHTTPVersion(tlsConfig *tls.Config, realityConfig *reality.Config) str
 	if tlsConfig.NextProtocol[0] == "h3" {
 		return "3"
 	}
+
 	return "2"
 }
 
@@ -109,14 +114,27 @@ func createHTTPClient(dest net.Destination, streamSettings *internet.MemoryStrea
 	realityConfig := reality.ConfigFromStreamSettings(streamSettings)
 
 	httpVersion := decideHTTPVersion(tlsConfig, realityConfig)
-	if httpVersion == "3" {
-		dest.Network = net.Network_UDP // better to keep this line
-	}
 
 	var gotlsConfig *gotls.Config
+	var h3gotlsConfig *gotls.Config
 
 	if tlsConfig != nil {
 		gotlsConfig = tlsConfig.GetTLSConfig(tls.WithDestination(dest))
+		h3gotlsConfig = gotlsConfig
+
+		if httpVersion == "3+2" {
+			h3gotlsConfig = &gotls.Config{}
+			*h3gotlsConfig = *gotlsConfig
+
+			// Make QUIC ALPN only contains h3, and remove h3 from TCP TLS ALPN
+			h3gotlsConfig.NextProtos = []string{"h3"}
+			h3idx := slices.Index(h3gotlsConfig.NextProtos, "h3")
+			// Don't modify original tlsConfig.NextProtocol
+			nextProtos := gotlsConfig.NextProtos
+			gotlsConfig.NextProtos = make([]string, 0, len(nextProtos)-1)
+			gotlsConfig.NextProtos = append(gotlsConfig.NextProtos, nextProtos[:h3idx]...)
+			gotlsConfig.NextProtos = append(gotlsConfig.NextProtos, nextProtos[h3idx+1:]...)
+		}
 	}
 
 	transportConfig := streamSettings.ProtocolSettings.(*Config)
@@ -152,7 +170,7 @@ func createHTTPClient(dest net.Destination, streamSettings *internet.MemoryStrea
 
 	var transport http.RoundTripper
 
-	if httpVersion == "3" {
+	makeH3Transport := func() *http3.Transport {
 		if keepAlivePeriod == 0 {
 			keepAlivePeriod = quicgoH3KeepAlivePeriod
 		}
@@ -168,9 +186,11 @@ func createHTTPClient(dest net.Destination, streamSettings *internet.MemoryStrea
 			MaxIncomingStreams: -1,
 			KeepAlivePeriod:    keepAlivePeriod,
 		}
-		transport = &http3.RoundTripper{
+		dest := dest
+		dest.Network = net.Network_UDP
+		return &http3.Transport{
 			QUICConfig:      quicConfig,
-			TLSClientConfig: gotlsConfig,
+			TLSClientConfig: h3gotlsConfig,
 			Dial: func(ctx context.Context, addr string, tlsCfg *gotls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
 				conn, err := internet.DialSystem(ctx, dest, streamSettings.SocketSettings)
 				if err != nil {
@@ -208,26 +228,30 @@ func createHTTPClient(dest net.Destination, streamSettings *internet.MemoryStrea
 				return quic.DialEarly(ctx, udpConn, udpAddr, tlsCfg, cfg)
 			},
 		}
-	} else if httpVersion == "2" {
+	}
+
+	makeH2Transport := func() *http2.Transport {
 		if keepAlivePeriod == 0 {
 			keepAlivePeriod = chromeH2KeepAlivePeriod
 		}
 		if keepAlivePeriod < 0 {
 			keepAlivePeriod = 0
 		}
-		transport = &http2.Transport{
+		return &http2.Transport{
 			DialTLSContext: func(ctxInner context.Context, network string, addr string, cfg *gotls.Config) (net.Conn, error) {
 				return dialContext(ctxInner)
 			},
 			IdleConnTimeout: connIdleTimeout,
 			ReadIdleTimeout: keepAlivePeriod,
 		}
-	} else {
+	}
+
+	makeTransport := func() *http.Transport {
 		httpDialContext := func(ctxInner context.Context, network string, addr string) (net.Conn, error) {
 			return dialContext(ctxInner)
 		}
 
-		transport = &http.Transport{
+		return &http.Transport{
 			DialTLSContext:  httpDialContext,
 			DialContext:     httpDialContext,
 			IdleConnTimeout: connIdleTimeout,
@@ -235,6 +259,22 @@ func createHTTPClient(dest net.Destination, streamSettings *internet.MemoryStrea
 			// http.Client and our custom dial context.
 			DisableKeepAlives: true,
 		}
+	}
+
+	switch httpVersion {
+	case "3":
+		transport = makeH3Transport()
+	case "2":
+		transport = makeH2Transport()
+	case "3+2":
+		raceTransport := &raceTransport{
+			h3:   makeH3Transport(),
+			h2:   makeH2Transport(),
+			dest: dest.NetAddr(),
+		}
+		transport = raceTransport.setup()
+	default:
+		transport = makeTransport()
 	}
 
 	client := &DefaultDialerClient{
