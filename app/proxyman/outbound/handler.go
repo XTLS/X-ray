@@ -273,7 +273,16 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (stat.Connecti
 			outbounds := session.OutboundsFromContext(ctx)
 			ob := outbounds[len(outbounds)-1]
 			if h.senderSettings.ViaCidr == "" {
-				ob.Gateway = h.senderSettings.Via.AsAddress()
+				if h.senderSettings.Via.AsAddress().Family().IsDomain() && h.senderSettings.Via.AsAddress().Domain() == "origin" {
+					if inbound := session.InboundFromContext(ctx); inbound != nil {
+						origin, _, err := net.SplitHostPort(inbound.Conn.LocalAddr().String())
+						if err == nil {
+							ob.Gateway = net.ParseAddress(origin)
+						}
+					}
+				} else {
+					ob.Gateway = h.senderSettings.Via.AsAddress()
+				}
 			} else { //Get a random address.
 				ob.Gateway = ParseRandomIPv6(h.senderSettings.Via.AsAddress(), h.senderSettings.ViaCidr)
 			}

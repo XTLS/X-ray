@@ -292,7 +292,9 @@ func (c *OutboundDetourConfig) Build() (*core.OutboundHandlerConfig, error) {
 			senderSettings.ViaCidr = strings.Split(*c.SendThrough, "/")[1]
 		} else {
 			if address.Family().IsDomain() {
-				return nil, errors.New("unable to send through: " + address.String())
+				if address.Address.Domain() != "origin" {
+					return nil, errors.New("unable to send through: " + address.String())
+				}
 			}
 		}
 		senderSettings.Via = address.Build()
