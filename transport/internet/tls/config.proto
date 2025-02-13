@@ -91,4 +91,10 @@ message Config {
      @Critical
   */
   repeated string verify_peer_cert_in_names = 17;
+
+
+
+  bytes ech_config = 20;
+
+  string ech_DOHserver = 21;
 }
