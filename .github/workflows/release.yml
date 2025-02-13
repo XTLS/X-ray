@@ -106,6 +106,7 @@ jobs:
       GOARCH: ${{ matrix.goarch }}
       GOARM: ${{ matrix.goarm }}
       CGO_ENABLED: 0
+      PREFIX: /usr/local
     steps:
       - name: Checkout codebase
         uses: actions/checkout@v4
@@ -124,7 +125,9 @@ jobs:
           check-latest: true
 
       - name: Get project dependencies
-        run: go mod download
+        run: |
+          go mod download
+          go mod tidy
       
       - name: Build Xray
         run: |
@@ -143,6 +146,9 @@ jobs:
           mv -f resources/* build_assets
           cp ${GITHUB_WORKSPACE}/README.md ./build_assets/README.md
           cp ${GITHUB_WORKSPACE}/LICENSE ./build_assets/LICENSE
+          if [ "$GOOS" = "windows" ]; then
+            cp ${GITHUB_WORKSPACE}/xray_no_window.vbs ./build_assets/xray_no_window.vbs || echo "xray_no_window.vbs not found, skipping."
+          fi
 
       - name: Create ZIP archive
         if: github.event_name == 'release'
